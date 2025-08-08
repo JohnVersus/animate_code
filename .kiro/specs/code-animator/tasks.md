@@ -9,7 +9,7 @@
   - Set up basic layout with three-panel design
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 2. Implement core data models and types
+- [x] 2. Implement core data models and types
 
   - Create TypeScript interfaces for Project, Slide, LineRange, and AnimationState
   - Implement validation functions for line ranges and slide configurations
@@ -17,7 +17,7 @@
   - Write unit tests for data models and validation logic
   - _Requirements: 2.2, 2.6, 7.1, 7.2_
 
-- [ ] 3. Create IndexedDB storage service
+- [-] 3. Create IndexedDB storage service
 
   - Implement StorageService class using Dexie.js for project management
   - Create methods for saving, loading, listing, and deleting projects
