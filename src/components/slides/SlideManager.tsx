@@ -135,11 +135,15 @@ export function SlideManager({
   }, []);
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 border-l border-gray-200">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white">
+      <div className="p-3 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Slides</h2>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">
+              {slides.length} slide{slides.length !== 1 ? "s" : ""}
+            </span>
+          </div>
           <button
             onClick={handleAddSlide}
             className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -148,52 +152,59 @@ export function SlideManager({
             Add Slide
           </button>
         </div>
-        <p className="text-sm text-gray-500 mt-1">
-          {slides.length} slide{slides.length !== 1 ? "s" : ""}
-        </p>
       </div>
 
-      {/* Slide List */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Slide List - Horizontal Layout */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden slide-container">
         {slides.length === 0 && !isCreating ? (
-          <div className="p-4 text-center text-gray-500">
-            <p className="text-sm">No slides yet.</p>
-            <p className="text-xs mt-1">Click "Add Slide" to get started.</p>
+          <div className="p-4 text-center text-gray-500 h-full flex items-center justify-center">
+            <div>
+              <p className="text-sm">No slides yet.</p>
+              <p className="text-xs mt-1">
+                Click &quot;Add Slide&quot; to get started.
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="p-2 space-y-2">
-            {slides.map((slide, index) => (
-              <div key={slide.id}>
-                {editingSlide === slide.id ? (
+          <div className="p-2 h-full">
+            <div className="flex space-x-3 h-full min-w-max">
+              {slides.map((slide, index) => (
+                <div key={slide.id} className="flex-shrink-0 w-64">
+                  {editingSlide === slide.id ? (
+                    <SlideEditor
+                      slide={slide}
+                      totalLines={totalLines}
+                      onSave={(slideData) =>
+                        handleEditSlide(slide.id, slideData)
+                      }
+                      onCancel={handleCancelEdit}
+                    />
+                  ) : (
+                    <SlideItem
+                      slide={slide}
+                      index={index}
+                      isActive={index === currentSlide}
+                      totalLines={totalLines}
+                      onSelect={() => handleSlideSelect(index)}
+                      onEdit={() => setEditingSlide(slide.id)}
+                      onDelete={() => handleDeleteSlide(slide.id)}
+                      onDuplicate={() => handleDuplicateSlide(slide.id)}
+                      onReorder={handleReorderSlides}
+                    />
+                  )}
+                </div>
+              ))}
+
+              {isCreating && (
+                <div className="flex-shrink-0 w-64">
                   <SlideEditor
-                    slide={slide}
                     totalLines={totalLines}
-                    onSave={(slideData) => handleEditSlide(slide.id, slideData)}
+                    onSave={handleCreateSlide}
                     onCancel={handleCancelEdit}
                   />
-                ) : (
-                  <SlideItem
-                    slide={slide}
-                    index={index}
-                    isActive={index === currentSlide}
-                    totalLines={totalLines}
-                    onSelect={() => handleSlideSelect(index)}
-                    onEdit={() => setEditingSlide(slide.id)}
-                    onDelete={() => handleDeleteSlide(slide.id)}
-                    onDuplicate={() => handleDuplicateSlide(slide.id)}
-                    onReorder={handleReorderSlides}
-                  />
-                )}
-              </div>
-            ))}
-
-            {isCreating && (
-              <SlideEditor
-                totalLines={totalLines}
-                onSave={handleCreateSlide}
-                onCancel={handleCancelEdit}
-              />
-            )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

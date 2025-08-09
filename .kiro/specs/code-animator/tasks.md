@@ -50,8 +50,8 @@
   - Add duration and animation style selection per slide
   - _Requirements: 2.1, 2.3, 2.4, 2.5, 2.7, 8.1, 8.2_
 
-- [ ] 6. Create Motion Canvas animation engine
-- [ ] 6.1 Set up Motion Canvas scene and basic rendering
+- [x] 6. Create Motion Canvas animation engine
+- [x] 6.1 Set up Motion Canvas scene and basic rendering
 
   - Initialize Motion Canvas project and scene setup
   - Create basic code rendering with syntax highlighting
@@ -59,7 +59,7 @@
   - Add frame rendering for static code display
   - _Requirements: 3.1, 3.2_
 
-- [ ] 6.2 Implement animation transitions between slides
+- [x] 6.2 Implement animation transitions between slides
 
   - Create transition animations for fade, slide, typewriter, and highlight styles
   - Implement smooth transitions for line additions and removals
@@ -67,7 +67,7 @@
   - Handle diff-style animations for modified lines
   - _Requirements: 3.3, 3.4, 3.5, 7.4, 7.5, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-- [ ] 7. Build animation preview component
+- [x] 7. Build animation preview component
 
   - Create AnimationPreview component with Motion Canvas integration
   - Implement play/pause controls and timeline scrubbing
@@ -112,7 +112,7 @@
   - Implement graceful fallbacks for animation failures
   - _Requirements: 2.6, 4.5, 6.5, 7.6_
 
-- [ ] 12. Create responsive layout and UI polish
+- [x] 12. Create responsive layout and UI polish
 
   - Implement responsive three-panel layout with collapsible panels
   - Add keyboard shortcuts for common operations

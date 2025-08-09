@@ -93,7 +93,7 @@ export function SlideItem({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`
-        relative p-3 rounded-lg border cursor-pointer transition-all duration-200
+        group relative p-2 rounded-lg border cursor-pointer transition-all duration-200
         ${
           isActive
             ? "bg-blue-50 border-blue-300 shadow-sm"
@@ -113,7 +113,7 @@ export function SlideItem({
       {/* Slide content */}
       <div className="ml-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1">
           <div className="flex items-center space-x-2">
             <span className="text-xs font-medium text-gray-500">
               #{index + 1}
@@ -161,7 +161,7 @@ export function SlideItem({
         </div>
 
         {/* Line ranges */}
-        <div className="mb-2">
+        <div className="mb-1">
           <span className="text-xs text-gray-500">Lines: </span>
           <span className="text-xs font-mono text-gray-700">
             {formatLineRanges(slide.lineRanges)}
