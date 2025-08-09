@@ -278,34 +278,6 @@ interface AppError {
 - Provide fallback UI for component failures
 - Log errors for debugging while showing user-friendly messages
 
-## Testing Strategy
-
-### Unit Testing
-
-- **Components**: Test each component in isolation with React Testing Library
-- **Services**: Mock external dependencies and test business logic
-- **Utilities**: Test helper functions and data transformations
-- **Hooks**: Test custom React hooks with react-hooks-testing-library
-
-### Integration Testing
-
-- **Animation Flow**: Test complete slide creation and animation workflow
-- **Storage Integration**: Test project save/load functionality
-- **Export Process**: Test video generation end-to-end
-
-### E2E Testing
-
-- **User Workflows**: Test complete user journeys with Playwright
-- **Cross-browser**: Ensure compatibility across modern browsers
-- **Performance**: Test with large code files and complex animations
-
-### Testing Tools
-
-- **Unit/Integration**: Jest + React Testing Library
-- **E2E**: Playwright
-- **Visual Regression**: Chromatic or similar
-- **Performance**: Lighthouse CI
-
 ## Performance Considerations
 
 ### Optimization Strategies

@@ -1,16 +1,14 @@
 // Database service using Dexie.js for local storage
 import Dexie, { Table } from "dexie";
-import { CodeSnippet, AnimationProject } from "@/types";
+import { Project } from "@/types";
 
 export class CodeAnimatorDB extends Dexie {
-  codeSnippets!: Table<CodeSnippet>;
-  animationProjects!: Table<AnimationProject>;
+  projects!: Table<Project>;
 
   constructor() {
     super("CodeAnimatorDB");
     this.version(1).stores({
-      codeSnippets: "id, title, language, createdAt, updatedAt",
-      animationProjects: "id, name, codeSnippetId, createdAt, updatedAt",
+      projects: "id, name, language, createdAt, updatedAt",
     });
   }
 }
