@@ -299,7 +299,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
       `}</style>
       {/* Static Canvas Preview */}
       {previewMode === "static" && (
-        <div className="w-full h-full flex items-center justify-center p-4">
+        <div className="w-full h-full flex items-center-safe justify-center pt-2 pb-32 px-4">
           <div className="w-full max-w-4xl aspect-video flex items-center justify-center">
             <canvas
               ref={canvasRef}
@@ -315,7 +315,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
 
       {/* Animated Preview */}
       {previewMode === "animated" && (
-        <div className="w-full h-full flex items-center justify-center p-4">
+        <div className="w-full h-full flex items-center justify-center pt-2 pb-32 px-4">
           <div className="w-full max-w-4xl aspect-video flex items-center justify-center">
             <canvas
               ref={canvasRef}
@@ -337,7 +337,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
       )}
 
       {/* Controls overlay */}
-      <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-75 rounded-lg p-4">
+      <div className="absolute bottom-2 left-4 right-4 bg-orange-500/30 bg-opacity-75 rounded-lg p-3">
         {/* Timeline scrubber */}
         {slides.length > 0 && (
           <div className="mb-3">
