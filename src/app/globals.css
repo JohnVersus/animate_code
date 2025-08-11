@@ -121,6 +121,7 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    font-size: 12px; /* Reduced from default 16px for zoomed-out appearance */
   }
   body {
     @apply bg-background text-foreground;
