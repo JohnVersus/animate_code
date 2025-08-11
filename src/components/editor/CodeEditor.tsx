@@ -1,6 +1,13 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Dynamically import Prism to avoid SSR issues
 let Prism: any = null;
@@ -248,9 +255,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
   // Handle language selection
   const handleLanguageChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       setIsManuallySelected(true);
-      onLanguageChange(e.target.value);
+      onLanguageChange(value);
     },
     [onLanguageChange]
   );
@@ -264,24 +271,19 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       {/* Language Selection */}
       <div className="flex items-center justify-between p-2 bg-gray-100 border-b">
         <div className="flex items-center gap-2">
-          <label
-            htmlFor="language-select"
-            className="text-sm font-medium text-gray-700"
-          >
-            Language:
-          </label>
-          <select
-            id="language-select"
-            value={language}
-            onChange={handleLanguageChange}
-            className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {Object.entries(SUPPORTED_LANGUAGES).map(([key, displayName]) => (
-              <option key={key} value={key}>
-                {displayName}
-              </option>
-            ))}
-          </select>
+          <label className="text-sm font-medium text-gray-700">Language:</label>
+          <Select value={language} onValueChange={handleLanguageChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select language" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(SUPPORTED_LANGUAGES).map(([key, displayName]) => (
+                <SelectItem key={key} value={key}>
+                  {displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         {detectedLanguage && detectedLanguage !== language && (
           <div className="text-xs text-gray-500">
@@ -313,10 +315,28 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
         {/* Code Content */}
         <div className="relative flex-1 overflow-hidden">
+          {/* Line Highlighting Overlay - Behind everything */}
+          {highlightedLines.length > 0 && (
+            <div className="absolute inset-0 p-4 pointer-events-none overflow-hidden z-0">
+              {code.split("\n").map((line, index) => (
+                <div
+                  key={index}
+                  className={`leading-6 ${
+                    highlightedLines.includes(index + 1) ? "bg-blue-500/20" : ""
+                  }`}
+                  style={{ minHeight: "1.5rem" }}
+                >
+                  {/* Invisible content to maintain layout */}
+                  <span className="invisible">{line || " "}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Syntax Highlighted Code (Background) */}
           <pre
             ref={preRef}
-            className="absolute inset-0 p-4 overflow-auto whitespace-pre-wrap break-words pointer-events-none"
+            className="absolute inset-0 p-4 overflow-auto whitespace-pre-wrap break-words pointer-events-none z-10"
             style={{ margin: 0 }}
           />
 
@@ -327,30 +347,10 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             onChange={handleInput}
             onScroll={handleScroll}
             placeholder="Paste your code here..."
-            className="absolute inset-0 p-4 w-full h-full bg-transparent text-transparent caret-white resize-none outline-none overflow-auto whitespace-pre-wrap break-words"
+            className="absolute inset-0 p-4 w-full h-full bg-transparent text-transparent caret-white resize-none outline-none overflow-auto whitespace-pre-wrap break-words z-20"
             style={{ margin: 0 }}
             spellCheck={false}
           />
-
-          {/* Line Highlighting Overlay */}
-          {highlightedLines.length > 0 && (
-            <div className="absolute inset-0 p-4 pointer-events-none overflow-hidden">
-              {code.split("\n").map((line, index) => (
-                <div
-                  key={index}
-                  className={`leading-6 ${
-                    highlightedLines.includes(index + 1)
-                      ? "bg-blue-500 bg-opacity-20"
-                      : ""
-                  }`}
-                  style={{ minHeight: "1.5rem" }}
-                >
-                  {/* Invisible content to maintain layout */}
-                  <span className="invisible">{line || " "}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@
 import React, { useRef } from "react";
 import { Slide } from "@/types";
 import { formatLineRanges, validateSlide } from "@/lib/validation";
+import { Button } from "@/components/ui/button";
 
 interface SlideItemProps {
   slide: Slide;
@@ -125,38 +126,44 @@ export function SlideItem({
 
           {/* Action buttons */}
           <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit();
               }}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded"
+              className="h-6 w-6 text-gray-400 hover:text-gray-600"
               title="Edit slide"
             >
               ✏️
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 onDuplicate();
               }}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded"
+              className="h-6 w-6 text-gray-400 hover:text-gray-600"
               title="Duplicate slide"
             >
               📋
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 if (confirm("Are you sure you want to delete this slide?")) {
                   onDelete();
                 }
               }}
-              className="p-1 text-gray-400 hover:text-red-600 rounded"
+              className="h-6 w-6 text-gray-400 hover:text-red-600"
               title="Delete slide"
             >
               🗑️
-            </button>
+            </Button>
           </div>
         </div>
 

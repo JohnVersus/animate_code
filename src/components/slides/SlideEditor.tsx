@@ -7,6 +7,8 @@ import {
   validateSlide,
   formatLineRanges,
 } from "@/lib/validation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface SlideEditorProps {
   slide?: Slide;
@@ -156,123 +158,113 @@ export function SlideEditor({
   }, [lineRangesText]);
 
   return (
-    <div className="h-full bg-white border border-gray-300 rounded-lg shadow-sm flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-900">
-              {slide ? "Edit Slide" : "New Slide"}
-            </h3>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={onCancel}
-                className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                {slide ? "Update" : "Create"}
-              </button>
-            </div>
-          </div>
+    <div className="space-y-4">
+      {/* Header */}
+      <div>
+        <h3 className="text-sm font-medium text-gray-900">
+          {slide ? "Edit Slide" : "New Slide"}
+        </h3>
+      </div>
 
-          {/* Error messages */}
-          {errors.length > 0 && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <div className="text-sm font-medium text-red-800 mb-1">
-                Please fix the following errors:
-              </div>
-              <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Slide name */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Slide Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter slide name..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+      {/* Error messages */}
+      {errors.length > 0 && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-sm font-medium text-red-800 mb-1">
+            Please fix the following errors:
           </div>
-
-          {/* Line ranges */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-medium text-gray-700">
-                Line Ranges
-              </label>
-              <button
-                onClick={handlePreviewRanges}
-                className="text-xs text-blue-600 hover:text-blue-800"
-                disabled={!lineRangesText.trim()}
-              >
-                Preview
-              </button>
-            </div>
-            <input
-              type="text"
-              value={lineRangesText}
-              onChange={(e) => handleLineRangesChange(e.target.value)}
-              placeholder="e.g., 1-5, 12-15, 20"
-              className="w-full px-3 py-2 text-sm font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Use ranges (1-5) or single lines (10). Separate multiple ranges
-              with commas. Total lines available: {totalLines}
-            </p>
-          </div>
-
-          {/* Duration */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Duration (milliseconds)
-            </label>
-            <input
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(parseInt(e.target.value, 10) || 0)}
-              min="100"
-              step="100"
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {(duration / 1000).toFixed(1)} seconds
-            </p>
-          </div>
-
-          {/* Animation style */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Animation Style
-            </label>
-            <select
-              value={animationStyle}
-              onChange={(e) =>
-                setAnimationStyle(e.target.value as AnimationStyle)
-              }
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {ANIMATION_STYLES.map((style) => (
-                <option key={style.value} value={style.value}>
-                  {style.label} - {style.description}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+            {errors.map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
         </div>
+      )}
+
+      {/* Slide name */}
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Slide Name
+        </label>
+        <Input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter slide name..."
+        />
+      </div>
+
+      {/* Line ranges */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-xs font-medium text-gray-700">
+            Line Ranges
+          </label>
+          <Button
+            variant="link"
+            size="sm"
+            onClick={handlePreviewRanges}
+            disabled={!lineRangesText.trim()}
+            className="text-xs h-auto p-0"
+          >
+            Preview
+          </Button>
+        </div>
+        <Input
+          type="text"
+          value={lineRangesText}
+          onChange={(e) => handleLineRangesChange(e.target.value)}
+          placeholder="e.g., 1-5, 12-15, 20"
+          className="font-mono"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Use ranges (1-5) or single lines (10). Separate multiple ranges with
+          commas. Total lines available: {totalLines}
+        </p>
+      </div>
+
+      {/* Duration */}
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Duration (milliseconds)
+        </label>
+        <Input
+          type="number"
+          value={duration}
+          onChange={(e) => setDuration(parseInt(e.target.value, 10) || 0)}
+          min="100"
+          step="100"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          {(duration / 1000).toFixed(1)} seconds
+        </p>
+      </div>
+
+      {/* Animation style */}
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Animation Style
+        </label>
+        <select
+          value={animationStyle}
+          onChange={(e) => setAnimationStyle(e.target.value as AnimationStyle)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          {ANIMATION_STYLES.map((style) => (
+            <option key={style.value} value={style.value}>
+              {style.label} - {style.description}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Action buttons at bottom */}
+      <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-200">
+        <Button variant="outline" size="sm" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button size="sm" onClick={handleSave}>
+          {slide ? "Update" : "Create"}
+        </Button>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { canvasRenderer } from "../../services/canvasRenderer";
 import { animationEngine } from "../../services/animationEngine";
 import { Slide } from "../../types";
+import { Button } from "@/components/ui/button";
 
 interface AnimationPreviewProps {
   code: string;
@@ -387,9 +388,9 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             {/* Play/Pause button */}
-            <button
+            <Button
               onClick={() => onPlayStateChange(!isPlaying)}
-              className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+              className="w-10 h-10 rounded-full"
               disabled={slides.length === 0}
             >
               {isPlaying ? (
@@ -417,13 +418,15 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
                   />
                 </svg>
               )}
-            </button>
+            </Button>
 
             {/* Reset button */}
             {slides.length > 0 && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={resetAnimation}
-                className="flex items-center justify-center w-8 h-8 text-gray-300 hover:text-white transition-colors"
+                className="w-8 h-8 text-gray-300 hover:text-white"
                 title="Reset to beginning"
               >
                 <svg
@@ -437,16 +440,18 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
                     clipRule="evenodd"
                   />
                 </svg>
-              </button>
+              </Button>
             )}
 
             {/* Manual slide navigation */}
             {slides.length > 0 && (
               <div className="flex items-center space-x-2">
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => goToSlide(currentSlide - 1)}
                   disabled={currentSlide === 0}
-                  className="p-1 text-white hover:text-blue-400 disabled:text-gray-500 disabled:cursor-not-allowed"
+                  className="text-white hover:text-blue-400 disabled:text-gray-500 disabled:cursor-not-allowed h-auto w-auto p-1"
                   title="Previous slide"
                 >
                   <svg
@@ -460,16 +465,18 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
                       clipRule="evenodd"
                     />
                   </svg>
-                </button>
+                </Button>
 
                 <div className="text-white text-sm font-medium px-2">
                   {currentSlide + 1} / {slides.length}
                 </div>
 
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => goToSlide(currentSlide + 1)}
                   disabled={currentSlide === slides.length - 1}
-                  className="p-1 text-white hover:text-blue-400 disabled:text-gray-500 disabled:cursor-not-allowed"
+                  className="text-white hover:text-blue-400 disabled:text-gray-500 disabled:cursor-not-allowed h-auto w-auto p-1"
                   title="Next slide"
                 >
                   <svg
@@ -483,7 +490,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
                       clipRule="evenodd"
                     />
                   </svg>
-                </button>
+                </Button>
               </div>
             )}
 

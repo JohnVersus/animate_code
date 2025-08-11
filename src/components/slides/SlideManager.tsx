@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Slide, LineRange, AnimationStyle } from "@/types";
-import {
-  validateSlide,
-  parseLineRanges,
-  formatLineRanges,
-} from "@/lib/validation";
+import { Slide } from "@/types";
 import { SlideItem } from "./SlideItem";
 import { SlideEditor } from "./SlideEditor";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface SlideManagerProps {
   slides: Slide[];
@@ -27,9 +28,11 @@ export function SlideManager({
 }: SlideManagerProps) {
   const [editingSlide, setEditingSlide] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const handleAddSlide = useCallback(() => {
     setIsCreating(true);
+    setIsPopoverOpen(true);
   }, []);
 
   const handleCreateSlide = useCallback(
@@ -43,6 +46,7 @@ export function SlideManager({
       const updatedSlides = [...slides, newSlide];
       onSlidesChange(updatedSlides);
       setIsCreating(false);
+      setIsPopoverOpen(false);
     },
     [slides, onSlidesChange]
   );
@@ -132,6 +136,7 @@ export function SlideManager({
   const handleCancelEdit = useCallback(() => {
     setEditingSlide(null);
     setIsCreating(false);
+    setIsPopoverOpen(false);
   }, []);
 
   return (
@@ -144,19 +149,26 @@ export function SlideManager({
               {slides.length} slide{slides.length !== 1 ? "s" : ""}
             </span>
           </div>
-          <button
-            onClick={handleAddSlide}
-            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            disabled={isCreating || editingSlide !== null}
-          >
-            Add Slide
-          </button>
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button size="sm" disabled={editingSlide !== null}>
+                Add Slide
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <SlideEditor
+                totalLines={totalLines}
+                onSave={handleCreateSlide}
+                onCancel={handleCancelEdit}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
       {/* Slide List - Horizontal Layout */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden slide-container">
-        {slides.length === 0 && !isCreating ? (
+        {slides.length === 0 ? (
           <div className="p-4 text-center text-gray-500 h-full flex items-center justify-center">
             <div>
               <p className="text-sm">No slides yet.</p>
@@ -194,16 +206,6 @@ export function SlideManager({
                   )}
                 </div>
               ))}
-
-              {isCreating && (
-                <div className="flex-shrink-0 w-64">
-                  <SlideEditor
-                    totalLines={totalLines}
-                    onSave={handleCreateSlide}
-                    onCancel={handleCancelEdit}
-                  />
-                </div>
-              )}
             </div>
           </div>
         )}
