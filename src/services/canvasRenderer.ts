@@ -88,18 +88,44 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     // Get current theme colors
     const theme = this.getThemeColors();
 
-    // Set up canvas
+    // Set up canvas with high-DPI support for crisp text
     const { width, height } = this.getCanvasSize(code);
-    canvas.width = width;
-    canvas.height = height;
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    
+    // Set actual canvas size in memory (scaled for high-DPI)
+    canvas.width = width * devicePixelRatio;
+    canvas.height = height * devicePixelRatio;
+    
+    // Set display size (CSS pixels)
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+    
+    // Scale the drawing context so everything draws at the correct size
+    ctx.scale(devicePixelRatio, devicePixelRatio);
 
-    // Clear canvas with theme background color
-    ctx.fillStyle = "#111827"; // Use the exact same color as CodeEditor
+    // Clear canvas with theme background color (force dark background to match editor)
+    ctx.fillStyle = "#111827"; // Force the same dark background as CodeEditor
     ctx.fillRect(0, 0, width, height);
 
-    // Set font
+    // Set font with better rendering
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     ctx.textBaseline = "top";
+    
+    // Enable better text rendering
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    
+    // Debug: Log the theme colors being used
+    console.log("Canvas renderer using theme:", {
+      background: theme.background,
+      text: theme.text,
+      lineNumber: theme.lineNumber,
+      sampleTokens: {
+        keyword: theme.tokens.keyword,
+        string: theme.tokens.string,
+        function: theme.tokens.function
+      }
+    });
 
     // Get lines to render
     const lines = code.split("\n");
@@ -110,7 +136,7 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     // Render each line
     let yOffset = this.padding;
     for (const { lineNumber, content } of visibleLines) {
-      this.renderLine(ctx, content, language, lineNumber, yOffset);
+      this.renderLine(ctx, content, language, lineNumber, yOffset, theme);
       yOffset += this.lineHeight;
     }
   }
@@ -120,10 +146,9 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     line: string,
     language: string,
     lineNumber: number,
-    y: number
+    y: number,
+    theme: ThemeColorScheme
   ): void {
-    const theme = this.getThemeColors();
-
     // Render line number with theme color
     ctx.fillStyle = theme.lineNumber;
     ctx.textAlign = "right";
