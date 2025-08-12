@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { canvasRenderer } from "../../services/canvasRenderer";
 import { animationEngine } from "../../services/animationEngine";
+import { prismThemeExtractor } from "../../services/prismThemeExtractor";
 import { Slide } from "../../types";
 import { Button } from "@/components/ui/button";
 
@@ -33,6 +34,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
   const onPlayStateChangeRef = useRef(onPlayStateChange);
 
   const [isRendering, setIsRendering] = useState(false);
+  const [themeReady, setThemeReady] = useState(false);
+  const [canvasBackgroundColor, setCanvasBackgroundColor] = useState("#111827");
   const [previewMode, setPreviewMode] = useState<"static" | "animated">(
     "static"
   );
@@ -47,13 +50,50 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
     onPlayStateChangeRef.current = onPlayStateChange;
   }, [onCurrentSlideChange, onPlayStateChange]);
 
+  // Initialize theme extraction when component mounts
+  useEffect(() => {
+    // Delay theme extraction to ensure Prism CSS is loaded
+    const initializeTheme = () => {
+      try {
+        // Clear any cached theme to ensure fresh extraction
+        prismThemeExtractor.clearCache();
+
+        // Update canvas renderer with extracted theme colors
+        canvasRenderer.updateTheme();
+
+        // Debug: Log the extracted background color
+        const bgColor = prismThemeExtractor.getBackgroundColor();
+        console.log("Theme extraction initialized for AnimationPreview");
+        console.log("Extracted background color:", bgColor);
+
+        // Update the canvas background color state
+        setCanvasBackgroundColor(bgColor);
+
+        // Mark theme as ready to trigger re-render
+        setThemeReady(true);
+      } catch (error) {
+        console.warn("Failed to initialize theme extraction:", error);
+        setCanvasBackgroundColor("#111827"); // Use fallback color matching bg-gray-900
+        setThemeReady(true); // Still mark as ready to avoid blocking
+      }
+    };
+
+    // Use setTimeout to ensure CSS is loaded and applied
+    const timeoutId = setTimeout(initializeTheme, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, []); // Run only once on mount
+
   // Render code to canvas when dependencies change
   useEffect(() => {
-    if (!canvasRef.current || !code.trim()) return;
+    if (!canvasRef.current || !code.trim() || !themeReady) return;
 
     setIsRendering(true);
 
     try {
+      // Ensure canvas renderer has the latest theme colors before rendering
+      canvasRenderer.updateTheme();
+
       // Use cumulative lines for better preview
       if (slides.length > 0) {
         const cumulativeLines = animationEngine.getCumulativeLines(
@@ -86,7 +126,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
     } finally {
       setIsRendering(false);
     }
-  }, [code, language, slides, currentSlide, previewMode]);
+  }, [code, language, slides, currentSlide, previewMode, themeReady]);
 
   // Calculate total duration when slides change (convert from milliseconds to seconds)
   useEffect(() => {
@@ -305,7 +345,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
               ref={canvasRef}
               className="max-w-full max-h-full border border-gray-700 rounded-lg shadow-lg"
               style={{
-                backgroundColor: "#1e1e1e",
+                backgroundColor: canvasBackgroundColor,
                 objectFit: "contain",
               }}
             />
@@ -321,7 +361,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
               ref={canvasRef}
               className="max-w-full max-h-full border border-gray-700 rounded-lg shadow-lg"
               style={{
-                backgroundColor: "#1e1e1e",
+                backgroundColor: canvasBackgroundColor,
                 objectFit: "contain",
               }}
             />
