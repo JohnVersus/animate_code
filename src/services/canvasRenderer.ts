@@ -17,8 +17,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
   private readonly fontSize = 14;
   private readonly lineHeight = 20;
   private readonly fontFamily = "JetBrains Mono, Monaco, Consolas, monospace";
-  private readonly padding = 10; // Reduced from 20 to 10
-  private readonly lineNumberWidth = 40; // Reduced from 50 to 40
+  private readonly padding = 20;
+  private readonly lineNumberWidth = 20;
 
   // Dynamic theme colors extracted from Prism.js
   private themeColors: ThemeColorScheme | null = null;
