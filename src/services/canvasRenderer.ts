@@ -110,9 +110,25 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);
 
-    // Set font
+    // Set font with better rendering
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     ctx.textBaseline = "top";
+
+    // Enable better text rendering
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    // Debug: Log the theme colors being used
+    console.log("Canvas renderer using theme:", {
+      background: theme.background,
+      text: theme.text,
+      lineNumber: theme.lineNumber,
+      sampleTokens: {
+        keyword: theme.tokens.keyword,
+        string: theme.tokens.string,
+        function: theme.tokens.function,
+      },
+    });
 
     // Get lines to render
     const lines = code.split("\n");
@@ -123,7 +139,7 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     // Render each line
     let yOffset = this.padding;
     for (const { lineNumber, content } of visibleLines) {
-      this.renderLine(ctx, content, language, lineNumber, yOffset);
+      this.renderLine(ctx, content, language, lineNumber, yOffset, theme);
       yOffset += this.lineHeight;
     }
   }
@@ -133,7 +149,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     line: string,
     language: string,
     lineNumber: number,
-    y: number
+    y: number,
+    theme: ThemeColorScheme
   ): void {
     const theme = this.getThemeColors();
 
