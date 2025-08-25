@@ -152,8 +152,6 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     y: number,
     theme: ThemeColorScheme
   ): void {
-    const theme = this.getThemeColors();
-
     // Render line number with theme color
     ctx.fillStyle = theme.lineNumber;
     ctx.textAlign = "right";
