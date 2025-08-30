@@ -94,14 +94,13 @@
   - Auto save the code and code animation slides in localstorage. So on page refresh we should still be able to load the slides by clicking on the code item in the list
   - _Requirements: 6.1, 6.2, 6.3, 6.6, 6.7_
 
-- [ ] 10. Implement animation customization features
+- [ ] 10. Fix and enhance animation styles functionality
 
-  - Add global timing controls and speed adjustments
-  - Create per-slide duration configuration
-  - Implement animation style selection with live preview
-  - Add transition effect customization options
-  - Create settings panel for default preferences
-  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
+  - Fix animation style implementations in the animation engine (fade, slide, typewriter, highlight styles are not working)
+  - Ensure animation styles are properly applied during transitions between slides
+  - Test and verify that each animation style produces the expected visual effects
+  - Add global speed/timing controls for overall animation playback speed
+  - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 9.3_
 
 - [ ] 11. Add error handling and user feedback
 
