@@ -263,11 +263,12 @@ class MotionCanvasVideoExportService implements VideoExportService {
 
     if (currentStep) {
       // Calculate progress within the current step
+      const stepStartTimeInSeconds = currentStep.startTime / 1000; // Convert from milliseconds to seconds
       const stepProgress = Math.min(
         1,
         Math.max(
           0,
-          (timeInSeconds - currentStep.startTime) /
+          (timeInSeconds - stepStartTimeInSeconds) /
             (currentStep.duration / 1000)
         )
       );
@@ -331,7 +332,7 @@ class MotionCanvasVideoExportService implements VideoExportService {
     timeInSeconds: number
   ) {
     for (const step of animationSteps) {
-      const stepStartTime = step.startTime;
+      const stepStartTime = step.startTime / 1000; // Convert from milliseconds to seconds
       const stepEndTime = stepStartTime + step.duration / 1000;
 
       if (timeInSeconds >= stepStartTime && timeInSeconds < stepEndTime) {

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ExportButton } from "@/components/export";
 import { Slide } from "@/types";
+import { debugVideoTiming } from "@/utils/debugVideoTiming";
 
 export default function TestExportPage() {
   const [testCode] = useState(`function fibonacci(n) {
@@ -46,6 +47,11 @@ console.log(fibonacci(10));`);
       order: 3,
     },
   ]);
+
+  // Debug timing on component mount
+  useEffect(() => {
+    debugVideoTiming(testSlides, testCode);
+  }, [testCode, testSlides]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
