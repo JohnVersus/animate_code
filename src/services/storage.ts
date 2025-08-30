@@ -10,11 +10,54 @@ export class CodeAnimatorDB extends Dexie {
     this.version(1).stores({
       projects: "id, name, createdAt, updatedAt",
     });
+
+    // Add error handling for database issues
+    this.on("blocked", () => {
+      console.warn(
+        "Database is blocked. Please close other tabs with this application."
+      );
+    });
+
+    this.on("versionchange", () => {
+      console.warn("Database version changed. Reloading...");
+      window.location.reload();
+    });
   }
 }
 
-// Create database instance
-const db = new CodeAnimatorDB();
+// Create database instance with error handling
+let db: CodeAnimatorDB;
+let dbInitialized = false;
+
+const initializeDB = async (): Promise<CodeAnimatorDB> => {
+  if (dbInitialized && db) {
+    return db;
+  }
+
+  try {
+    db = new CodeAnimatorDB();
+    await db.open();
+    dbInitialized = true;
+    return db;
+  } catch (error) {
+    console.error("Failed to initialize IndexedDB:", error);
+
+    // If IndexedDB fails, try to delete and recreate
+    try {
+      await Dexie.delete("CodeAnimatorDB");
+      db = new CodeAnimatorDB();
+      await db.open();
+      dbInitialized = true;
+      console.log("Successfully recreated database after error");
+      return db;
+    } catch (recreateError) {
+      console.error("Failed to recreate database:", recreateError);
+      throw new Error(
+        "IndexedDB is not available. Please try refreshing the page or use a different browser."
+      );
+    }
+  }
+};
 
 export interface StorageService {
   saveProject(
@@ -38,6 +81,7 @@ class StorageServiceImpl implements StorageService {
     project: Omit<Project, "id" | "createdAt" | "updatedAt">
   ): Promise<string> {
     try {
+      const database = await initializeDB();
       const now = new Date();
       const newProject: Project = {
         ...project,
@@ -46,7 +90,7 @@ class StorageServiceImpl implements StorageService {
         updatedAt: now,
       };
 
-      await db.projects.add(newProject);
+      await database.projects.add(newProject);
       return newProject.id;
     } catch (error) {
       throw this.createStorageError("Failed to save project", error);
@@ -58,12 +102,13 @@ class StorageServiceImpl implements StorageService {
    */
   async updateProject(project: Project): Promise<void> {
     try {
+      const database = await initializeDB();
       const updatedProject = {
         ...project,
         updatedAt: new Date(),
       };
 
-      const result = await db.projects.update(project.id, updatedProject);
+      const result = await database.projects.update(project.id, updatedProject);
       if (result === 0) {
         throw new Error(`Project with id ${project.id} not found`);
       }
@@ -77,7 +122,8 @@ class StorageServiceImpl implements StorageService {
    */
   async loadProject(id: string): Promise<Project> {
     try {
-      const project = await db.projects.get(id);
+      const database = await initializeDB();
+      const project = await database.projects.get(id);
       if (!project) {
         throw new Error(`Project with id ${id} not found`);
       }
@@ -92,9 +138,12 @@ class StorageServiceImpl implements StorageService {
    */
   async listProjects(): Promise<Project[]> {
     try {
-      return await db.projects.orderBy("updatedAt").reverse().toArray();
+      const database = await initializeDB();
+      return await database.projects.orderBy("updatedAt").reverse().toArray();
     } catch (error) {
-      throw this.createStorageError("Failed to list projects", error);
+      console.error("Failed to list projects:", error);
+      // Return empty array if database fails, don't crash the app
+      return [];
     }
   }
 
@@ -103,13 +152,14 @@ class StorageServiceImpl implements StorageService {
    */
   async deleteProject(id: string): Promise<void> {
     try {
+      const database = await initializeDB();
       // First check if project exists
-      const project = await db.projects.get(id);
+      const project = await database.projects.get(id);
       if (!project) {
         throw new Error(`Project with id ${id} not found`);
       }
 
-      await db.projects.delete(id);
+      await database.projects.delete(id);
 
       // Clear any pending auto-save for this project
       this.clearAutoSave(id);
@@ -181,5 +231,5 @@ class StorageServiceImpl implements StorageService {
 // Export singleton instance
 export const storageService = new StorageServiceImpl();
 
-// Export database instance for advanced usage if needed
-export { db };
+// Export database initialization function for advanced usage if needed
+export { initializeDB };

@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Code, Trash2, Calendar } from "lucide-react";
+import { Plus, Code, Trash2, Calendar, Settings } from "lucide-react";
+import { clearDatabase } from "@/utils/dbUtils";
 
 interface CodeManagerProps {
   onCodeSelect: (code: string, language: string, slides: Slide[]) => void;
@@ -37,6 +38,8 @@ export function CodeManager({
   const [newProjectName, setNewProjectName] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [showDebugOptions, setShowDebugOptions] = useState(false);
 
   // Use ref to access current projects without causing re-renders
   const projectsRef = useRef<Project[]>([]);
@@ -128,15 +131,20 @@ export function CodeManager({
         }
       }
     }
-  }, [projects.length, selectedProject, handleProjectSelect]);
+  }, [projects.length, selectedProject, handleProjectSelect, projects]);
 
   const loadProjects = async () => {
     try {
       setIsLoading(true);
+      setStorageError(null);
       const projectList = await storageService.listProjects();
       setProjects(projectList);
     } catch (error) {
       console.error("Failed to load projects:", error);
+      setStorageError(
+        "Unable to access project storage. Please refresh the page or try a different browser."
+      );
+      setProjects([]);
     } finally {
       setIsLoading(false);
     }
@@ -222,9 +230,81 @@ function example() {
     }).format(new Date(date));
   };
 
+  const handleClearDatabase = async () => {
+    if (!confirm("This will delete ALL projects permanently. Are you sure?")) {
+      return;
+    }
+
+    try {
+      await clearDatabase();
+      setProjects([]);
+      setSelectedProject(null);
+      setStorageError(null);
+      alert("Database cleared successfully. The page will now reload.");
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to clear database:", error);
+      alert(
+        "Failed to clear database. Please try refreshing the page manually."
+      );
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 text-center text-gray-500">Loading projects...</div>
+    );
+  }
+
+  if (storageError) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-800">Code Projects</h2>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="text-red-500 mb-2">⚠️</div>
+            <p className="text-sm text-red-600 mb-3">{storageError}</p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.location.reload()}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 mr-2"
+              >
+                Refresh Page
+              </Button>
+              <Button
+                onClick={() => setShowDebugOptions(!showDebugOptions)}
+                size="sm"
+                variant="outline"
+              >
+                <Settings className="w-3 h-3 mr-1" />
+                Debug Options
+              </Button>
+            </div>
+            {showDebugOptions && (
+              <div className="mt-4 p-3 bg-gray-50 rounded border text-left">
+                <p className="text-xs text-gray-600 mb-2">
+                  If refreshing doesn&apos;t work, you can try clearing the
+                  database:
+                </p>
+                <Button
+                  onClick={handleClearDatabase}
+                  size="sm"
+                  variant="destructive"
+                  className="text-xs"
+                >
+                  Clear All Data
+                </Button>
+                <p className="text-xs text-gray-500 mt-1">
+                  ⚠️ This will permanently delete all your projects
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     );
   }
 
