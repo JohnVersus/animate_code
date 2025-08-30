@@ -1,4 +1,4 @@
-import { Slide, VideoSettings, ErrorType, AppError } from "../types";
+import { Slide, VideoSettings, ErrorType, AppError, LineRange } from "../types";
 import { animationEngine } from "./animationEngine";
 import { canvasRenderer } from "./canvasRenderer";
 
@@ -82,7 +82,11 @@ class MotionCanvasVideoExportService implements VideoExportService {
       const { frameRate, resolution } = options.videoSettings;
       const totalDuration =
         slides.reduce((sum, slide) => sum + slide.duration, 0) / 1000; // Convert to seconds
-      const totalFrames = Math.ceil(totalDuration * frameRate);
+
+      // Add a small buffer at the end to ensure the last frame is visible
+      const bufferDuration = 0.5; // 0.5 seconds
+      const totalDurationWithBuffer = totalDuration + bufferDuration;
+      const totalFrames = Math.ceil(totalDurationWithBuffer * frameRate);
 
       // Create canvas for rendering
       const canvas = document.createElement("canvas");
@@ -93,8 +97,22 @@ class MotionCanvasVideoExportService implements VideoExportService {
 
       // Set canvas dimensions based on resolution
       const dimensions = this.getResolutionDimensions(resolution);
+
+      // Use the canvas renderer to determine proper content sizing
+      const contentSize = canvasRenderer.getCanvasSize(code);
+
+      // Scale the content to fit the target resolution while maintaining aspect ratio
+      const scaleX = dimensions.width / contentSize.width;
+      const scaleY = dimensions.height / contentSize.height;
+      const scale = Math.min(scaleX, scaleY);
+
+      // Set final canvas size
       canvas.width = dimensions.width;
       canvas.height = dimensions.height;
+
+      // Store scale for later use in rendering
+      (canvas as any)._exportScale = scale;
+      (canvas as any)._contentSize = contentSize;
 
       // Phase 2: Rendering frames
       onProgress?.({
@@ -237,10 +255,6 @@ class MotionCanvasVideoExportService implements VideoExportService {
     animationSteps: any[],
     timeInSeconds: number
   ): ImageData {
-    // Clear canvas
-    ctx.fillStyle = "#1e1e1e"; // Dark background
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     // Find the current animation step for this time
     const currentStep = this.findAnimationStepAtTime(
       animationSteps,
@@ -258,15 +272,55 @@ class MotionCanvasVideoExportService implements VideoExportService {
         )
       );
 
-      // Render the code for this step
-      this.renderCodeStep(
-        ctx,
-        canvas,
-        code,
-        language,
+      // Get the visible lines for this step with animation effects
+      const visibleLineRanges = this.getAnimatedLineRanges(
         currentStep,
         stepProgress
       );
+
+      if (visibleLineRanges.length > 0) {
+        // Create a temporary canvas for content rendering
+        const tempCanvas = document.createElement("canvas");
+        const contentSize = (canvas as any)._contentSize;
+        tempCanvas.width = contentSize.width;
+        tempCanvas.height = contentSize.height;
+
+        // Use the existing canvas renderer for proper styling and syntax highlighting
+        canvasRenderer.updateTheme();
+        canvasRenderer.renderCodeToCanvas(
+          tempCanvas,
+          code,
+          language,
+          visibleLineRanges
+        );
+
+        // Clear main canvas first
+        ctx.fillStyle = "#111827";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Scale and center the content on the main canvas
+        const scale = (canvas as any)._exportScale;
+        const scaledWidth = contentSize.width * scale;
+        const scaledHeight = contentSize.height * scale;
+        const offsetX = (canvas.width - scaledWidth) / 2;
+        const offsetY = (canvas.height - scaledHeight) / 2;
+
+        ctx.drawImage(
+          tempCanvas,
+          0,
+          0,
+          contentSize.width,
+          contentSize.height,
+          offsetX,
+          offsetY,
+          scaledWidth,
+          scaledHeight
+        );
+      }
+    } else {
+      // Clear canvas if no step is active
+      ctx.fillStyle = "#111827"; // Match the theme background
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
     return ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -285,69 +339,83 @@ class MotionCanvasVideoExportService implements VideoExportService {
       }
     }
 
-    // Return the last step if we're past all steps
-    return animationSteps[animationSteps.length - 1];
+    // Return the last step if we're past all steps, but ensure it shows all content
+    const lastStep = animationSteps[animationSteps.length - 1];
+    if (lastStep) {
+      // Create a modified version of the last step that shows all content
+      return {
+        ...lastStep,
+        // Ensure we show all cumulative lines at full opacity
+        linesToAdd: [], // No new lines to animate
+        cumulativeLines: lastStep.cumulativeLines,
+      };
+    }
+
+    return null;
   }
 
-  private renderCodeStep(
-    ctx: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement,
-    code: string,
-    language: string,
-    step: any,
-    progress: number
-  ) {
-    // Basic code rendering - this would be enhanced with proper syntax highlighting
-    const lines = code.split("\n");
-    const fontSize = Math.max(12, Math.min(24, canvas.width / 80)); // Responsive font size
-    const lineHeight = fontSize * 1.4;
+  private getAnimatedLineRanges(step: any, progress: number): LineRange[] {
+    if (!step.cumulativeLines || step.cumulativeLines.length === 0) {
+      return [];
+    }
 
-    ctx.font = `${fontSize}px 'JetBrains Mono', Monaco, Consolas, monospace`;
-    ctx.fillStyle = "#d4d4d4"; // Light text color
+    // For animation effects, we need to determine which lines should be visible
+    // based on the animation style and progress
+    let visibleLines: number[] = [];
 
-    const startY = 50;
-    const startX = 50;
+    if (step.animationStyle === "fade" || step.animationStyle === "slide") {
+      // For fade and slide animations, show all previous lines plus animated lines based on progress
+      const allLines = step.cumulativeLines.map((line: any) => line.lineNumber);
+      const newLines = step.linesToAdd || [];
+      const existingLines = allLines.filter(
+        (lineNum: number) => !newLines.includes(lineNum)
+      );
 
-    // Render visible lines for this step
-    step.cumulativeLines.forEach((line: any, index: number) => {
-      const y = startY + index * lineHeight;
+      // Always show existing lines
+      visibleLines = [...existingLines];
 
-      // Apply animation effects based on step progress and animation style
-      let alpha = 1;
-      let offsetX = 0;
-
-      if (step.animationStyle === "fade") {
-        // Fade in new lines
-        if (step.linesToAdd.includes(line.lineNumber)) {
-          alpha = progress;
-        }
-      } else if (step.animationStyle === "slide") {
-        // Slide in from the right
-        if (step.linesToAdd.includes(line.lineNumber)) {
-          offsetX = (1 - progress) * 100;
-          alpha = progress;
-        }
-      } else if (step.animationStyle === "typewriter") {
-        // Typewriter effect
-        if (step.linesToAdd.includes(line.lineNumber)) {
-          const charProgress = progress * line.content.length;
-          line.content = line.content.substring(0, Math.floor(charProgress));
-        }
+      // Add new lines based on progress (for fade/slide effects)
+      // Show new lines if progress > 0.1 to make them appear early in the animation
+      if (progress > 0.1) {
+        visibleLines = [...visibleLines, ...newLines];
       }
+    } else if (step.animationStyle === "typewriter") {
+      // For typewriter, show all lines but the effect is handled by the canvas renderer
+      visibleLines = step.cumulativeLines.map((line: any) => line.lineNumber);
+    } else {
+      // Default: show all cumulative lines
+      visibleLines = step.cumulativeLines.map((line: any) => line.lineNumber);
+    }
 
-      ctx.save();
-      ctx.globalAlpha = alpha;
+    // Convert line numbers to ranges
+    if (visibleLines.length === 0) {
+      return [];
+    }
 
-      // Line number
-      ctx.fillStyle = "#858585";
-      ctx.fillText(line.lineNumber.toString().padStart(3, " "), startX - 30, y);
+    // Sort line numbers
+    visibleLines.sort((a, b) => a - b);
 
-      // Code content
-      ctx.fillStyle = "#d4d4d4";
-      ctx.fillText(line.content, startX + offsetX, y);
+    // Group consecutive lines into ranges
+    const ranges: { start: number; end: number }[] = [];
+    let rangeStart = visibleLines[0];
+    let rangeEnd = visibleLines[0];
 
-      ctx.restore();
-    });
+    for (let i = 1; i < visibleLines.length; i++) {
+      if (visibleLines[i] === rangeEnd + 1) {
+        // Consecutive line, extend current range
+        rangeEnd = visibleLines[i];
+      } else {
+        // Gap found, close current range and start new one
+        ranges.push({ start: rangeStart, end: rangeEnd });
+        rangeStart = visibleLines[i];
+        rangeEnd = visibleLines[i];
+      }
+    }
+
+    // Add the final range
+    ranges.push({ start: rangeStart, end: rangeEnd });
+
+    return ranges;
   }
 
   private async encodeFramesToVideo(
