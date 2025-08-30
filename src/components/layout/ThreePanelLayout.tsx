@@ -8,6 +8,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
+import { ExportButton } from "@/components/export";
 
 // Dynamically import components to avoid SSR issues
 const CodeEditor = dynamic(
@@ -116,10 +117,17 @@ export default function ThreePanelLayout() {
             {/* Animation Preview Section */}
             <ResizablePanel defaultSize={70} minSize={40} maxSize={85}>
               <div className="bg-white flex flex-col h-full border-b border-gray-300">
-                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-800">
                     Animation Preview
                   </h2>
+                  <ExportButton
+                    code={code}
+                    language={language}
+                    slides={slides}
+                    projectName="code-animation"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  />
                 </div>
                 <div className="flex-1 p-4">
                   <div className="w-full h-full max-w-4xl mx-auto">
