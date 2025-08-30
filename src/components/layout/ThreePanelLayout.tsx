@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { Slide, AnimationState } from "@/types";
 import {
@@ -9,6 +9,7 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { ExportButton } from "@/components/export";
+import { CodeManager } from "@/components/project";
 
 // Dynamically import components to avoid SSR issues
 const CodeEditor = dynamic(
@@ -76,6 +77,9 @@ export default function ThreePanelLayout() {
     playbackSpeed: 1,
   });
 
+  // State for project management
+  const [currentProjectName, setCurrentProjectName] = useState<string>("");
+
   const handlePlayStateChange = (playing: boolean) => {
     setAnimationState((prev) => ({ ...prev, isPlaying: playing }));
   };
@@ -85,16 +89,73 @@ export default function ThreePanelLayout() {
     setAnimationState((prev) => ({ ...prev, currentSlide: slideIndex }));
   };
 
+  const handleCodeSelect = (
+    newCode: string,
+    newLanguage: string,
+    newSlides: Slide[]
+  ) => {
+    setCode(newCode);
+    setLanguage(newLanguage);
+    setSlides(newSlides);
+    setCurrentSlide(0);
+    setAnimationState((prev) => ({
+      ...prev,
+      currentSlide: 0,
+      isPlaying: false,
+      progress: 0,
+    }));
+
+    // Update highlighted lines based on first slide
+    if (newSlides.length > 0) {
+      const firstSlide = newSlides[0];
+      const lines: number[] = [];
+      firstSlide.lineRanges.forEach((range) => {
+        for (let i = range.start; i <= range.end; i++) {
+          lines.push(i);
+        }
+      });
+      setHighlightedLines(lines);
+    } else {
+      setHighlightedLines([]);
+    }
+  };
+
+  const handleAutoSave = (projectName: string) => {
+    setCurrentProjectName(projectName);
+  };
+
   return (
     <div className="h-full bg-gray-100">
       <ResizablePanelGroup direction="horizontal" className="h-full">
-        {/* Left Panel - Code Editor */}
-        <ResizablePanel defaultSize={35} minSize={25} maxSize={60}>
+        {/* Left Panel - Code Projects */}
+        <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
+          <div className="bg-white border-r border-gray-300 flex flex-col h-full">
+            <CodeManager
+              onCodeSelect={handleCodeSelect}
+              currentCode={code}
+              currentLanguage={language}
+              currentSlides={slides}
+              onAutoSave={handleAutoSave}
+            />
+          </div>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Middle Panel - Code Editor */}
+        <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
           <div className="bg-white border-r border-gray-300 flex flex-col h-full">
             <div className="p-4 border-b border-gray-200 bg-gray-50">
-              <h2 className="text-lg font-semibold text-gray-800">
-                Code Editor
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Code Editor
+                </h2>
+                {currentProjectName && (
+                  <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    {currentProjectName}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex-1 p-0">
               <CodeEditor
@@ -112,7 +173,7 @@ export default function ThreePanelLayout() {
         <ResizableHandle withHandle />
 
         {/* Right Panel - Animation Preview and Slides */}
-        <ResizablePanel defaultSize={65} minSize={40}>
+        <ResizablePanel defaultSize={45} minSize={35}>
           <ResizablePanelGroup direction="vertical" className="h-full">
             {/* Animation Preview Section */}
             <ResizablePanel defaultSize={70} minSize={40} maxSize={85}>
@@ -125,7 +186,7 @@ export default function ThreePanelLayout() {
                     code={code}
                     language={language}
                     slides={slides}
-                    projectName="code-animation"
+                    projectName={currentProjectName || "code-animation"}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   />
                 </div>

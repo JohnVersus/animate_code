@@ -85,13 +85,13 @@
   - Handle export errors with retry mechanisms
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
-- [ ] 9. Create project management system
+- [x] 9. Create Code management system
 
-  - Build ProjectManager component with project list and controls
-  - Implement new project creation and project selection
-  - Add project naming, saving, and deletion functionality
-  - Integrate auto-save with the main application state
-  - Create project import/export for sharing
+  - The AIM is to create multiple code samples and save them in home page
+  - Build Code Manager component with code list
+  - Implement new code addition and code selection with code name for recognistion
+  - Clicking on the code item in the list should load the code.
+  - Auto save the code and code animation slides in localstorage. So on page refresh we should still be able to load the slides by clicking on the code item in the list
   - _Requirements: 6.1, 6.2, 6.3, 6.6, 6.7_
 
 - [ ] 10. Implement animation customization features
