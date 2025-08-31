@@ -106,7 +106,7 @@
   - _Requirements: 3.4, 3.5, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 9.3_
 
 - [x] 11. Enhance user experience with UI improvements
-- [ ] 11.1 Replace slide edit form with shadcn popover
+- [x] 11.1 Replace slide edit form with shadcn popover
 
   - Replace the normal form used for editing slides with a shadcn popover component
   - Ensure consistency with the "Add slides" popover implementation

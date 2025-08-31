@@ -1,9 +1,15 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Slide } from "@/types";
 import { formatLineRanges, validateSlide } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { SlideEditor } from "./SlideEditor";
 
 interface SlideItemProps {
   slide: Slide;
@@ -11,7 +17,7 @@ interface SlideItemProps {
   isActive: boolean;
   totalLines: number;
   onSelect: () => void;
-  onEdit: () => void;
+  onEdit: (slideId: string, slideData: Omit<Slide, "id" | "order">) => void;
   onDelete: () => void;
   onDuplicate: () => void;
   onReorder: (dragIndex: number, hoverIndex: number) => void;
@@ -31,6 +37,7 @@ export function SlideItem({
   const dragRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = React.useState(false);
   const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+  const [isEditPopoverOpen, setIsEditPopoverOpen] = useState(false);
 
   const validation = validateSlide(slide, totalLines);
   const hasErrors = !validation.isValid;
@@ -84,6 +91,15 @@ export function SlideItem({
     }
   };
 
+  const handleEditSave = (slideData: Omit<Slide, "id" | "order">) => {
+    onEdit(slide.id, slideData);
+    setIsEditPopoverOpen(false);
+  };
+
+  const handleEditCancel = () => {
+    setIsEditPopoverOpen(false);
+  };
+
   return (
     <div
       ref={dragRef}
@@ -126,18 +142,32 @@ export function SlideItem({
 
           {/* Action buttons */}
           <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              className="h-6 w-6 text-gray-400 hover:text-gray-600"
-              title="Edit slide"
+            <Popover
+              open={isEditPopoverOpen}
+              onOpenChange={setIsEditPopoverOpen}
             >
-              ✏️
-            </Button>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="h-6 w-6 text-gray-400 hover:text-gray-600"
+                  title="Edit slide"
+                >
+                  ✏️
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <SlideEditor
+                  slide={slide}
+                  totalLines={totalLines}
+                  onSave={handleEditSave}
+                  onCancel={handleEditCancel}
+                />
+              </PopoverContent>
+            </Popover>
             <Button
               variant="ghost"
               size="icon"

@@ -26,14 +26,7 @@ export function SlideManager({
   onSlidesChange,
   onCurrentSlideChange,
 }: SlideManagerProps) {
-  const [editingSlide, setEditingSlide] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-
-  const handleAddSlide = useCallback(() => {
-    setIsCreating(true);
-    setIsPopoverOpen(true);
-  }, []);
 
   const handleCreateSlide = useCallback(
     (slideData: Omit<Slide, "id" | "order">) => {
@@ -45,7 +38,6 @@ export function SlideManager({
 
       const updatedSlides = [...slides, newSlide];
       onSlidesChange(updatedSlides);
-      setIsCreating(false);
       setIsPopoverOpen(false);
     },
     [slides, onSlidesChange]
@@ -57,7 +49,6 @@ export function SlideManager({
         slide.id === slideId ? { ...slide, ...slideData } : slide
       );
       onSlidesChange(updatedSlides);
-      setEditingSlide(null);
     },
     [slides, onSlidesChange]
   );
@@ -134,8 +125,6 @@ export function SlideManager({
   );
 
   const handleCancelEdit = useCallback(() => {
-    setEditingSlide(null);
-    setIsCreating(false);
     setIsPopoverOpen(false);
   }, []);
 
@@ -151,9 +140,7 @@ export function SlideManager({
           </div>
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button size="sm" disabled={editingSlide !== null}>
-                Add Slide
-              </Button>
+              <Button size="sm">Add Slide</Button>
             </PopoverTrigger>
             <PopoverContent className="w-80" align="end">
               <SlideEditor
@@ -182,28 +169,17 @@ export function SlideManager({
             <div className="flex space-x-3 h-full min-w-max">
               {slides.map((slide, index) => (
                 <div key={slide.id} className="flex-shrink-0 w-64">
-                  {editingSlide === slide.id ? (
-                    <SlideEditor
-                      slide={slide}
-                      totalLines={totalLines}
-                      onSave={(slideData) =>
-                        handleEditSlide(slide.id, slideData)
-                      }
-                      onCancel={handleCancelEdit}
-                    />
-                  ) : (
-                    <SlideItem
-                      slide={slide}
-                      index={index}
-                      isActive={index === currentSlide}
-                      totalLines={totalLines}
-                      onSelect={() => handleSlideSelect(index)}
-                      onEdit={() => setEditingSlide(slide.id)}
-                      onDelete={() => handleDeleteSlide(slide.id)}
-                      onDuplicate={() => handleDuplicateSlide(slide.id)}
-                      onReorder={handleReorderSlides}
-                    />
-                  )}
+                  <SlideItem
+                    slide={slide}
+                    index={index}
+                    isActive={index === currentSlide}
+                    totalLines={totalLines}
+                    onSelect={() => handleSlideSelect(index)}
+                    onEdit={handleEditSlide}
+                    onDelete={() => handleDeleteSlide(slide.id)}
+                    onDuplicate={() => handleDuplicateSlide(slide.id)}
+                    onReorder={handleReorderSlides}
+                  />
                 </div>
               ))}
             </div>
