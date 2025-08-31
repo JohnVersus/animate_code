@@ -144,15 +144,15 @@
   - Add accessibility features (ARIA labels, keyboard navigation)
   - _Requirements: 5.3, 5.4_
 
-- [ ] 13. Implement JSON mode for slides editing
-- [ ] 13.1 Create JSON mode toggle functionality
+- [x] 13. Implement JSON mode for slides editing
+- [x] 13.1 Create JSON mode toggle functionality
 
   - Add a toggle button in the slide manager to switch between visual and JSON editing modes
   - Implement state management for tracking current editing mode (visual/JSON)
   - Ensure the toggle button is clearly visible and accessible in the slide manager UI
   - _Requirements: 2.3, 2.4, 5.4_
 
-- [ ] 13.2 Build JSON editor component for slides
+- [x] 13.2 Build JSON editor component for slides
 
   - Create a JSON editor component with syntax highlighting for JSON
   - Implement real-time JSON validation to prevent corrupt data
@@ -160,7 +160,7 @@
   - Ensure the JSON editor is properly sized and integrated into the slide manager layout
   - _Requirements: 2.1, 2.2, 7.1, 7.2_
 
-- [ ] 13.3 Implement bidirectional synchronization between visual and JSON modes
+- [x] 13.3 Implement bidirectional synchronization between visual and JSON modes
 
   - Convert slide data to properly formatted JSON when switching to JSON mode
   - Parse and validate JSON data when switching back to visual mode

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Slide } from "@/types";
 import { SlideItem } from "./SlideItem";
 import { SlideEditor } from "./SlideEditor";
+import { JSONEditor } from "./JSONEditor";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -27,6 +28,15 @@ export function SlideManager({
   onCurrentSlideChange,
 }: SlideManagerProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [editingMode, setEditingMode] = useState<"visual" | "json">("visual");
+  const [jsonModeSlides, setJsonModeSlides] = useState<Slide[]>(slides);
+
+  // Sync jsonModeSlides when slides change from outside (e.g., visual mode changes)
+  useEffect(() => {
+    if (editingMode === "visual") {
+      setJsonModeSlides(slides);
+    }
+  }, [slides, editingMode]);
 
   const handleCreateSlide = useCallback(
     (slideData: Omit<Slide, "id" | "order">) => {
@@ -128,6 +138,26 @@ export function SlideManager({
     setIsPopoverOpen(false);
   }, []);
 
+  const handleToggleEditingMode = useCallback(() => {
+    const newMode = editingMode === "visual" ? "json" : "visual";
+
+    // If switching to JSON mode, sync the current slides
+    if (newMode === "json") {
+      setJsonModeSlides(slides);
+    }
+
+    setEditingMode(newMode);
+  }, [editingMode, slides]);
+
+  const handleJsonSlidesChange = useCallback(
+    (newSlides: Slide[]) => {
+      setJsonModeSlides(newSlides);
+      // Immediately apply changes to the main slides
+      onSlidesChange(newSlides);
+    },
+    [onSlidesChange]
+  );
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
@@ -138,53 +168,92 @@ export function SlideManager({
               {slides.length} slide{slides.length !== 1 ? "s" : ""}
             </span>
           </div>
-          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button size="sm">Add Slide</Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
-              <SlideEditor
-                totalLines={totalLines}
-                slideCount={slides.length}
-                onSave={handleCreateSlide}
-                onCancel={handleCancelEdit}
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="flex items-center space-x-2">
+            {/* JSON/Visual Mode Toggle */}
+            <div className="flex items-center bg-gray-100 rounded-md p-1">
+              <button
+                onClick={handleToggleEditingMode}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  editingMode === "visual"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Visual
+              </button>
+              <button
+                onClick={handleToggleEditingMode}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  editingMode === "json"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                JSON
+              </button>
+            </div>
+            {editingMode === "visual" && (
+              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button size="sm">Add Slide</Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <SlideEditor
+                    totalLines={totalLines}
+                    slideCount={slides.length}
+                    onSave={handleCreateSlide}
+                    onCancel={handleCancelEdit}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Slide List - Horizontal Layout */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden slide-container">
-        {slides.length === 0 ? (
-          <div className="p-4 text-center text-gray-500 h-full flex items-center justify-center">
-            <div>
-              <p className="text-sm">No slides yet.</p>
-              <p className="text-xs mt-1">
-                Click &quot;Add Slide&quot; to get started.
-              </p>
-            </div>
+      {/* Content Area */}
+      <div className="flex-1 overflow-hidden">
+        {editingMode === "visual" ? (
+          /* Visual Mode - Slide List - Horizontal Layout */
+          <div className="h-full overflow-x-auto overflow-y-hidden slide-container">
+            {slides.length === 0 ? (
+              <div className="p-4 text-center text-gray-500 h-full flex items-center justify-center">
+                <div>
+                  <p className="text-sm">No slides yet.</p>
+                  <p className="text-xs mt-1">
+                    Click &quot;Add Slide&quot; to get started.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-2 h-full">
+                <div className="flex space-x-3 h-full min-w-max">
+                  {slides.map((slide, index) => (
+                    <div key={slide.id} className="flex-shrink-0 w-64">
+                      <SlideItem
+                        slide={slide}
+                        index={index}
+                        isActive={index === currentSlide}
+                        totalLines={totalLines}
+                        onSelect={() => handleSlideSelect(index)}
+                        onEdit={handleEditSlide}
+                        onDelete={() => handleDeleteSlide(slide.id)}
+                        onDuplicate={() => handleDuplicateSlide(slide.id)}
+                        onReorder={handleReorderSlides}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="p-2 h-full">
-            <div className="flex space-x-3 h-full min-w-max">
-              {slides.map((slide, index) => (
-                <div key={slide.id} className="flex-shrink-0 w-64">
-                  <SlideItem
-                    slide={slide}
-                    index={index}
-                    isActive={index === currentSlide}
-                    totalLines={totalLines}
-                    onSelect={() => handleSlideSelect(index)}
-                    onEdit={handleEditSlide}
-                    onDelete={() => handleDeleteSlide(slide.id)}
-                    onDuplicate={() => handleDuplicateSlide(slide.id)}
-                    onReorder={handleReorderSlides}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          /* JSON Mode */
+          <JSONEditor
+            slides={jsonModeSlides}
+            onSlidesChange={handleJsonSlidesChange}
+            totalLines={totalLines}
+          />
         )}
       </div>
     </div>
