@@ -113,7 +113,7 @@
   - Maintain all existing edit functionality within the popover interface
   - _Requirements: 2.3, 2.4, 5.4_
 
-- [ ] 11.2 Add video preview after export completion
+- [x] 11.2 Add video preview after export completion
 
   - Implement video preview component to display exported video in the UI
   - Show preview alongside a download button instead of direct download

@@ -29,7 +29,10 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
   const [exportProgress, setExportProgress] = useState<
     ExportProgress | undefined
   >();
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [exportedVideo, setExportedVideo] = useState<{
+    blob: Blob;
+    fileName: string;
+  } | null>(null);
 
   const handleExportClick = () => {
     // Validate prerequisites
@@ -55,11 +58,8 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           message: "Starting export...",
         });
 
-        // Clean up previous download URL
-        if (downloadUrl) {
-          URL.revokeObjectURL(downloadUrl);
-          setDownloadUrl(null);
-        }
+        // Clean up previous exported video
+        setExportedVideo(null);
 
         const videoBlob = await videoExportService.exportVideo(
           code,
@@ -75,23 +75,18 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           globalSpeed
         );
 
-        // Create download URL
-        const url = URL.createObjectURL(videoBlob);
-        setDownloadUrl(url);
+        // Store the exported video for preview
+        const fileName = `${exportProjectName}.${videoSettings.format}`;
+        setExportedVideo({
+          blob: videoBlob,
+          fileName,
+        });
 
-        // Trigger automatic download
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${exportProjectName}.${videoSettings.format}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Update progress to show completion with download info
+        // Update progress to show completion
         setExportProgress({
           phase: "complete",
           progress: 1,
-          message: `Video exported successfully! Download should start automatically.`,
+          message: `Video exported successfully! You can now preview and download it.`,
         });
       } catch (error) {
         console.error("Export failed:", error);
@@ -112,7 +107,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
         });
       }
     },
-    [code, language, slides, downloadUrl, globalSpeed]
+    [code, language, slides, globalSpeed]
   );
 
   const handleCancel = useCallback(() => {
@@ -130,12 +125,9 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
     // Clean up after a delay to allow the dialog to close smoothly
     setTimeout(() => {
       setExportProgress(undefined);
-      if (downloadUrl) {
-        URL.revokeObjectURL(downloadUrl);
-        setDownloadUrl(null);
-      }
+      setExportedVideo(null);
     }, 300);
-  }, [downloadUrl]);
+  }, []);
 
   const isExporting = videoExportService.isExporting();
   const canExport = !disabled && code.trim() && slides.length > 0;
@@ -175,6 +167,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
         onCancel={handleCancel}
         exportProgress={exportProgress}
         defaultProjectName={projectName}
+        exportedVideo={exportedVideo}
       />
     </>
   );
