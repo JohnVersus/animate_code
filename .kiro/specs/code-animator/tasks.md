@@ -169,8 +169,8 @@
   - Maintain slide order, durations, animation styles, and line ranges during conversion
   - _Requirements: 2.1, 2.2, 2.5, 7.1, 7.2, 7.6_
 
-- [ ] 14. Add JSON mode validation and user experience enhancements
-- [ ] 14.1 Implement comprehensive JSON schema validation
+- [x] 14. Add JSON mode validation and user experience enhancements
+- [x] 14.1 Implement comprehensive JSON schema validation
 
   - Create TypeScript schema validation for slide JSON structure
   - Validate required fields (name, lineRanges, duration, animationStyle)
@@ -178,7 +178,7 @@
   - Provide detailed error messages for specific validation failures
   - _Requirements: 2.2, 7.1, 7.2, 7.6_
 
-- [ ] 14.2 Add JSON mode user experience features
+- [x] 14.2 Add JSON mode user experience features
 
   - Implement auto-formatting for JSON when switching to JSON mode
   - Add keyboard shortcuts for common JSON editing operations

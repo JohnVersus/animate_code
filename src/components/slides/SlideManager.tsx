@@ -30,6 +30,7 @@ export function SlideManager({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [editingMode, setEditingMode] = useState<"visual" | "json">("visual");
   const [jsonModeSlides, setJsonModeSlides] = useState<Slide[]>(slides);
+  const [hasUnsavedJsonChanges, setHasUnsavedJsonChanges] = useState(false);
 
   // Sync jsonModeSlides when slides change from outside (e.g., visual mode changes)
   useEffect(() => {
@@ -149,6 +150,19 @@ export function SlideManager({
     setEditingMode(newMode);
   }, [editingMode, slides]);
 
+  const handleUnsavedChangesChange = useCallback((hasChanges: boolean) => {
+    setHasUnsavedJsonChanges(hasChanges);
+  }, []);
+
+  const confirmModeSwitch = useCallback(() => {
+    if (hasUnsavedJsonChanges) {
+      return window.confirm(
+        "You have invalid JSON that cannot be auto-saved. Switching modes will discard these changes. Do you want to continue?"
+      );
+    }
+    return true;
+  }, [hasUnsavedJsonChanges]);
+
   const handleJsonSlidesChange = useCallback(
     (newSlides: Slide[]) => {
       setJsonModeSlides(newSlides);
@@ -172,7 +186,17 @@ export function SlideManager({
             {/* JSON/Visual Mode Toggle */}
             <div className="flex items-center bg-gray-100 rounded-md p-1">
               <button
-                onClick={handleToggleEditingMode}
+                onClick={() => {
+                  if (editingMode === "json") {
+                    // Check for unsaved changes when switching from JSON to Visual
+                    if (confirmModeSwitch()) {
+                      setEditingMode("visual");
+                      setHasUnsavedJsonChanges(false);
+                    }
+                  } else {
+                    setEditingMode("visual");
+                  }
+                }}
                 className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
                   editingMode === "visual"
                     ? "bg-white text-gray-900 shadow-sm"
@@ -180,9 +204,19 @@ export function SlideManager({
                 }`}
               >
                 Visual
+                {editingMode === "json" && hasUnsavedJsonChanges && (
+                  <span className="ml-1 w-1.5 h-1.5 bg-orange-500 rounded-full inline-block"></span>
+                )}
               </button>
               <button
-                onClick={handleToggleEditingMode}
+                onClick={() => {
+                  if (editingMode === "visual") {
+                    setJsonModeSlides(slides);
+                    setEditingMode("json");
+                  } else {
+                    setEditingMode("json");
+                  }
+                }}
                 className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
                   editingMode === "json"
                     ? "bg-white text-gray-900 shadow-sm"
@@ -190,6 +224,9 @@ export function SlideManager({
                 }`}
               >
                 JSON
+                {editingMode === "json" && hasUnsavedJsonChanges && (
+                  <span className="ml-1 w-1.5 h-1.5 bg-orange-500 rounded-full inline-block"></span>
+                )}
               </button>
             </div>
             {editingMode === "visual" && (
@@ -253,6 +290,7 @@ export function SlideManager({
             slides={jsonModeSlides}
             onSlidesChange={handleJsonSlidesChange}
             totalLines={totalLines}
+            onUnsavedChangesChange={handleUnsavedChangesChange}
           />
         )}
       </div>
