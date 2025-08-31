@@ -105,14 +105,36 @@
   - Add global speed/timing controls for overall animation playback speed
   - _Requirements: 3.4, 3.5, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 9.3_
 
-- [ ] 11. Add error handling and user feedback
+- [x] 11. Enhance user experience with UI improvements
+- [ ] 11.1 Replace slide edit form with shadcn popover
 
-  - Implement error boundaries for component failure recovery
-  - Add user-friendly error messages for validation failures
-  - Create loading states and progress indicators
-  - Add success notifications for save/export operations
-  - Implement graceful fallbacks for animation failures
-  - _Requirements: 2.6, 4.5, 6.5, 7.6_
+  - Replace the normal form used for editing slides with a shadcn popover component
+  - Ensure consistency with the "Add slides" popover implementation
+  - Maintain all existing edit functionality within the popover interface
+  - _Requirements: 2.3, 2.4, 5.4_
+
+- [ ] 11.2 Add video preview after export completion
+
+  - Implement video preview component to display exported video in the UI
+  - Show preview alongside a download button instead of direct download
+  - Allow users to review the video before deciding to download
+  - Add proper video controls (play/pause) for the preview
+  - _Requirements: 4.3, 4.4, 5.4_
+
+- [ ] 11.3 Sync code editor highlighting with slide selection
+
+  - Update code editor line highlighting when clicking on slides in the slide manager
+  - Ensure the code editor reflects the current slide's line ranges
+  - Maintain synchronization between slide selection and code preview
+  - _Requirements: 1.4, 2.1, 3.7_
+
+- [ ] 11.4 Improve slide creation defaults and user experience
+
+  - Auto-generate slide names with pattern "slide-1", "slide-2", etc. based on slide count
+  - Remove the requirement for users to manually enter slide names during creation
+  - Allow users to edit slide names after creation if desired
+  - Change default duration from current value to 500 milliseconds
+  - _Requirements: 2.3, 2.4, 5.4_
 
 - [x] 12. Create responsive layout and UI polish
 
