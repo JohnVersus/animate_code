@@ -608,12 +608,12 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
           {/* Right side info */}
           <div className="flex items-center space-x-4">
             {/* Progress indicator */}
-            {slides.length > 0 && (
+            {/* {slides.length > 0 && (
               <div className="text-xs text-gray-300">
                 <div>Slide: {Math.round(animationProgress * 100)}%</div>
                 <div>Total: {Math.round(totalProgress * 100)}%</div>
               </div>
-            )}
+            )} */}
 
             {/* Language indicator */}
             <div className="text-white text-sm font-medium">

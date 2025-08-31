@@ -128,7 +128,14 @@ export function CodeManager({
         const lastProject = projects.find((p) => p.id === lastSelectedId);
         if (lastProject) {
           handleProjectSelect(lastProject);
+          return;
         }
+      }
+
+      // If no last selected project or it doesn't exist, select the first project
+      // This handles the case where the default project is created for first-time users
+      if (projects.length > 0) {
+        handleProjectSelect(projects[0]);
       }
     }
   }, [projects.length, selectedProject, handleProjectSelect, projects]);

@@ -59,12 +59,15 @@ const SlideManager = dynamic(
 
 export default function ThreePanelLayout() {
   // State for CodeEditor
-  const [code, setCode] = useState(`function hello() {
-  console.log("Hello, World!");
-  return "Welcome to Code Animator!";
+  const [code, setCode] = useState(`// Welcome to Code Animator!
+// Loading your example project...
+
+function createCalculator() {
+  // Your example code will load shortly
+  return "Loading...";
 }`);
   const [language, setLanguage] = useState("javascript");
-  const [highlightedLines, setHighlightedLines] = useState<number[]>([2, 3]);
+  const [highlightedLines, setHighlightedLines] = useState<number[]>([]);
 
   // State for slides and animation
   const [slides, setSlides] = useState<Slide[]>([]);

@@ -209,3 +209,36 @@
   - Test with various line range combinations (consecutive, non-consecutive, overlapping) to verify correct numbering
   - Verify that sequential numbering is properly maintained in video exports (MP4, WebM, GIF)
   - _Requirements: 2.3, 3.1, 3.2, 4.4, 7.3, 7.4_
+
+- [x] 16. Create example code project for new users
+- [x] 16.1 Implement default example code project
+
+  - Create a simple JavaScript example that demonstrates the tool's capabilities
+  - Include a basic function or algorithm that shows meaningful code progression
+  - Ensure the example is beginner-friendly and showcases different animation styles
+  - Pre-populate the code editor with this example when users first visit the application
+  - Store the example as a default project that users can modify or replace
+  - _Requirements: 5.4, 6.1, 6.2_
+
+- [x] 16.2 Create pre-configured slides for the example project
+
+  - Design 3-5 slides that demonstrate the example code being built step by step
+  - Configure different animation styles across slides (fade, typewriter, highlight)
+  - Set appropriate durations for each slide to create a smooth demonstration
+  - Ensure slides show logical code progression that tells a story
+  - Save the example slides configuration as part of the default project
+  - _Requirements: 2.1, 2.3, 2.5, 3.4, 3.5_
+
+- [ ] 17. Create comprehensive GitHub README documentation
+
+  - Write a detailed README.md file explaining the Code Animator tool
+  - Include project description, features, and use cases
+  - Add installation and setup instructions for local development
+  - Document how to use the tool with step-by-step instructions
+  - Include the simple JavaScript example code snippet in the README
+  - Add the corresponding JSON slides configuration for the example
+  - Reserve space for demo video with placeholder text
+  - Add credits section thanking Kiro app and motion-canvas package
+  - Include screenshots or diagrams showing the tool's interface
+  - Add contributing guidelines and license information
+  - _Requirements: 5.4, 6.7_
