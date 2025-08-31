@@ -11,11 +11,6 @@ interface JSONEditorProps {
   onUnsavedChangesChange?: (hasUnsavedChanges: boolean) => void;
 }
 
-interface HistoryEntry {
-  text: string;
-  timestamp: number;
-}
-
 export function JSONEditor({
   slides,
   onSlidesChange,
@@ -32,9 +27,6 @@ export function JSONEditor({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [originalText, setOriginalText] = useState("");
 
-  // Undo/Redo functionality
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [validator] = useState(() => new SlideJSONValidator(totalLines));
 
@@ -45,14 +37,6 @@ export function JSONEditor({
     setOriginalText(formattedJson);
     setValidationResult({ isValid: true, errors: [], warnings: [] });
     setHasUnsavedChanges(false);
-
-    // Initialize history
-    const initialEntry: HistoryEntry = {
-      text: formattedJson,
-      timestamp: Date.now(),
-    };
-    setHistory([initialEntry]);
-    setHistoryIndex(0);
   }, [slides]);
 
   // Update validator when totalLines changes
@@ -67,35 +51,6 @@ export function JSONEditor({
     [validator]
   );
 
-  // Add to history with debouncing
-  const addToHistory = useCallback(
-    (text: string) => {
-      const now = Date.now();
-      setHistory((prev) => {
-        // Don't add if text is the same as current
-        if (prev[historyIndex]?.text === text) return prev;
-
-        // Remove any future history if we're not at the end
-        const newHistory = prev.slice(0, historyIndex + 1);
-
-        // Add new entry
-        const newEntry: HistoryEntry = { text, timestamp: now };
-        newHistory.push(newEntry);
-
-        // Limit history size
-        if (newHistory.length > 50) {
-          newHistory.shift();
-          setHistoryIndex((prev) => Math.max(0, prev - 1));
-          return newHistory;
-        }
-
-        setHistoryIndex(newHistory.length - 1);
-        return newHistory;
-      });
-    },
-    [historyIndex]
-  );
-
   const handleTextChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newText = event.target.value;
@@ -103,11 +58,6 @@ export function JSONEditor({
 
       const result = validateJSON(newText);
       setValidationResult(result);
-
-      // Add to history (debounced)
-      const timeoutId = setTimeout(() => {
-        addToHistory(newText);
-      }, 500);
 
       // Auto-save: If valid, update slides immediately and mark as saved
       if (result.isValid) {
@@ -131,23 +81,14 @@ export function JSONEditor({
         setHasUnsavedChanges(hasChanges);
         onUnsavedChangesChange?.(hasChanges);
       }
-
-      return () => clearTimeout(timeoutId);
     },
-    [
-      validateJSON,
-      onSlidesChange,
-      originalText,
-      addToHistory,
-      onUnsavedChangesChange,
-    ]
+    [validateJSON, onSlidesChange, originalText, onUnsavedChangesChange]
   );
 
   const handleFormatJSON = useCallback(() => {
     const formatted = SlideJSONValidator.formatJSON(jsonText);
     if (formatted !== jsonText) {
       setJsonText(formatted);
-      addToHistory(formatted);
 
       // Re-validate after formatting
       const result = validateJSON(formatted);
@@ -178,96 +119,8 @@ export function JSONEditor({
   }, [
     jsonText,
     validateJSON,
-    addToHistory,
     onSlidesChange,
     originalText,
-    onUnsavedChangesChange,
-  ]);
-
-  // Undo/Redo functions
-  const handleUndo = useCallback(() => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      const historyEntry = history[newIndex];
-      if (historyEntry) {
-        setJsonText(historyEntry.text);
-        setHistoryIndex(newIndex);
-
-        const result = validateJSON(historyEntry.text);
-        setValidationResult(result);
-
-        // Auto-save logic for undo - same as handleTextChange
-        if (result.isValid) {
-          try {
-            const parsedSlides = JSON.parse(historyEntry.text) as Slide[];
-            onSlidesChange(parsedSlides);
-            // Update original text to reflect the saved state
-            setOriginalText(historyEntry.text);
-            setHasUnsavedChanges(false);
-            onUnsavedChangesChange?.(false);
-          } catch (error) {
-            console.error("Undo parse error:", error);
-            const hasChanges = historyEntry.text !== originalText;
-            setHasUnsavedChanges(hasChanges);
-            onUnsavedChangesChange?.(hasChanges);
-          }
-        } else {
-          // If invalid, mark as having unsaved changes
-          const hasChanges = historyEntry.text !== originalText;
-          setHasUnsavedChanges(hasChanges);
-          onUnsavedChangesChange?.(hasChanges);
-        }
-      }
-    }
-  }, [
-    history,
-    historyIndex,
-    originalText,
-    validateJSON,
-    onSlidesChange,
-    onUnsavedChangesChange,
-  ]);
-
-  const handleRedo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1;
-      const historyEntry = history[newIndex];
-      if (historyEntry) {
-        setJsonText(historyEntry.text);
-        setHistoryIndex(newIndex);
-
-        const result = validateJSON(historyEntry.text);
-        setValidationResult(result);
-
-        // Auto-save logic for redo - same as handleTextChange
-        if (result.isValid) {
-          try {
-            const parsedSlides = JSON.parse(historyEntry.text) as Slide[];
-            onSlidesChange(parsedSlides);
-            // Update original text to reflect the saved state
-            setOriginalText(historyEntry.text);
-            setHasUnsavedChanges(false);
-            onUnsavedChangesChange?.(false);
-          } catch (error) {
-            console.error("Redo parse error:", error);
-            const hasChanges = historyEntry.text !== originalText;
-            setHasUnsavedChanges(hasChanges);
-            onUnsavedChangesChange?.(hasChanges);
-          }
-        } else {
-          // If invalid, mark as having unsaved changes
-          const hasChanges = historyEntry.text !== originalText;
-          setHasUnsavedChanges(hasChanges);
-          onUnsavedChangesChange?.(hasChanges);
-        }
-      }
-    }
-  }, [
-    history,
-    historyIndex,
-    originalText,
-    validateJSON,
-    onSlidesChange,
     onUnsavedChangesChange,
   ]);
 
@@ -276,19 +129,6 @@ export function JSONEditor({
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (event.metaKey || event.ctrlKey) {
         switch (event.key) {
-          case "z":
-            if (event.shiftKey) {
-              event.preventDefault();
-              handleRedo();
-            } else {
-              event.preventDefault();
-              handleUndo();
-            }
-            break;
-          case "y":
-            event.preventDefault();
-            handleRedo();
-            break;
           case "s":
             event.preventDefault();
             handleFormatJSON();
@@ -296,7 +136,7 @@ export function JSONEditor({
         }
       }
     },
-    [handleUndo, handleRedo, handleFormatJSON]
+    [handleFormatJSON]
   );
 
   return (
@@ -328,25 +168,6 @@ export function JSONEditor({
               )}
           </div>
           <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={handleUndo}
-                disabled={historyIndex <= 0}
-                className="text-xs px-2 py-1 bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Undo (Ctrl/Cmd+Z)"
-              >
-                ↶
-              </button>
-              <button
-                onClick={handleRedo}
-                disabled={historyIndex >= history.length - 1}
-                className="text-xs px-2 py-1 bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Redo (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y)"
-              >
-                ↷
-              </button>
-            </div>
-
             <button
               onClick={handleFormatJSON}
               className="text-xs px-3 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
@@ -377,8 +198,8 @@ export function JSONEditor({
           placeholder={`Enter JSON for slides...
 
 Keyboard shortcuts:
-• Ctrl/Cmd+Z: Undo
-• Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y: Redo
+• Ctrl/Cmd+Z: Undo (native browser undo)
+• Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y: Redo (native browser redo)
 • Ctrl/Cmd+S: Format JSON`}
           spellCheck={false}
         />
