@@ -20,6 +20,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [metadataLoaded, setMetadataLoaded] = useState(false);
+  const [isGif, setIsGif] = useState(false);
 
   useEffect(() => {
     // Create object URL for the video blob
@@ -28,11 +29,16 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     setMetadataLoaded(false);
     setDuration(0);
 
+    // Check if this is a GIF file
+    const isGifFile =
+      videoBlob.type === "image/gif" || fileName.toLowerCase().endsWith(".gif");
+    setIsGif(isGifFile);
+
     // Cleanup function to revoke the URL when component unmounts
     return () => {
       URL.revokeObjectURL(url);
     };
-  }, [videoBlob]);
+  }, [videoBlob, fileName]);
 
   // Retry mechanism for WebM files that might take longer to load metadata
   useEffect(() => {
@@ -146,81 +152,102 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Video Player */}
+      {/* Media Player - Video or GIF */}
       <div className="relative bg-black rounded-lg overflow-hidden">
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          className="w-full h-auto max-h-96"
-          preload="metadata"
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onCanPlay={handleLoadedMetadata}
-          onCanPlayThrough={handleCanPlayThrough}
-          onDurationChange={handleLoadedMetadata}
-          onLoadedData={handleLoadedMetadata}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onEnded={() => setIsPlaying(false)}
-        />
+        {isGif ? (
+          <img
+            src={videoUrl}
+            alt="Generated GIF"
+            className="w-full h-auto max-h-96 mx-auto"
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            className="w-full h-auto max-h-96"
+            preload="metadata"
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onCanPlay={handleLoadedMetadata}
+            onCanPlayThrough={handleCanPlayThrough}
+            onDurationChange={handleLoadedMetadata}
+            onLoadedData={handleLoadedMetadata}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
+          />
+        )}
       </div>
 
-      {/* Video Controls */}
-      <div className="space-y-3">
-        {/* Play/Pause and Time Display */}
-        <div className="flex items-center space-x-4">
-          <Button
-            onClick={handlePlayPause}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
-            {isPlaying ? (
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 9v6m4-6v6"
-                />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-            <span>{isPlaying ? "Pause" : "Play"}</span>
-          </Button>
+      {/* Video Controls - Only show for video files, not GIFs */}
+      {!isGif && (
+        <div className="space-y-3">
+          {/* Play/Pause and Time Display */}
+          <div className="flex items-center space-x-4">
+            <Button
+              onClick={handlePlayPause}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2"
+            >
+              {isPlaying ? (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 9v6m4-6v6"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+              <span>{isPlaying ? "Pause" : "Play"}</span>
+            </Button>
 
-          <div className="text-sm text-gray-600">
-            {formatTime(currentTime)} / {formatTime(duration)}
+            <div className="text-sm text-gray-600">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <input
+              type="range"
+              min="0"
+              max={duration || 0}
+              value={currentTime}
+              onChange={handleSeek}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              style={{
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                  duration > 0 ? (currentTime / duration) * 100 : 0
+                }%, #e5e7eb ${
+                  duration > 0 ? (currentTime / duration) * 100 : 0
+                }%, #e5e7eb 100%)`,
+              }}
+            />
           </div>
         </div>
+      )}
 
-        {/* Progress Bar */}
-        <div className="space-y-2">
-          <input
-            type="range"
-            min="0"
-            max={duration || 0}
-            value={currentTime}
-            onChange={handleSeek}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-            style={{
-              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
-                duration > 0 ? (currentTime / duration) * 100 : 0
-              }%, #e5e7eb ${
-                duration > 0 ? (currentTime / duration) * 100 : 0
-              }%, #e5e7eb 100%)`,
-            }}
-          />
+      {/* GIF Info - Show for GIF files */}
+      {isGif && (
+        <div className="text-center text-sm text-gray-600 py-2">
+          GIF animation will loop automatically
         </div>
-      </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex justify-between items-center pt-4 border-t">

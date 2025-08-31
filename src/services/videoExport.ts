@@ -1,6 +1,8 @@
 import { Slide, VideoSettings, ErrorType, AppError, LineRange } from "../types";
 import { animationEngine } from "./animationEngine";
 import { canvasRenderer } from "./canvasRenderer";
+import GIF from "gif.js";
+import { testGifLibrary } from "../utils/gifTest";
 
 export interface ExportProgress {
   phase: "preparing" | "rendering" | "encoding" | "complete" | "error";
@@ -64,13 +66,15 @@ class MotionCanvasVideoExportService implements VideoExportService {
         throw new Error("Video export is not supported in this browser");
       }
 
-      // Check if the requested format is supported
-      const mimeType =
-        options.videoSettings.format === "mp4" ? "video/mp4" : "video/webm";
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        throw new Error(
-          `${options.videoSettings.format.toUpperCase()} format is not supported in this browser`
-        );
+      // Check if the requested format is supported (skip for GIF)
+      if (options.videoSettings.format !== "gif") {
+        const mimeType =
+          options.videoSettings.format === "mp4" ? "video/mp4" : "video/webm";
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          throw new Error(
+            `${options.videoSettings.format.toUpperCase()} format is not supported in this browser`
+          );
+        }
       }
 
       // Phase 1: Preparing
@@ -136,6 +140,14 @@ class MotionCanvasVideoExportService implements VideoExportService {
         globalSpeed
       );
 
+      // Debug: Log animation steps
+      console.log(`Animation steps:`, animationSteps.length);
+      animationSteps.forEach((step, index) => {
+        console.log(
+          `Step ${index}: startTime=${step.startTime}ms, duration=${step.duration}ms, slideIndex=${step.slideIndex}`
+        );
+      });
+
       // Render each frame
       for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
         if (this.shouldCancel) {
@@ -154,6 +166,11 @@ class MotionCanvasVideoExportService implements VideoExportService {
 
         frames.push(frameData);
         currentFrame++;
+
+        // Debug: Log frame timing for first few frames
+        if (frameIndex < 5) {
+          console.log(`Frame ${frameIndex}: time=${timeInSeconds}s`);
+        }
 
         // Update progress every 10 frames or at the end
         if (currentFrame % 10 === 0 || currentFrame === totalFrames) {
@@ -177,7 +194,7 @@ class MotionCanvasVideoExportService implements VideoExportService {
         message: "Encoding video file...",
       });
 
-      // Create video blob from frames
+      // Create video/gif blob from frames
       const videoBlob = await this.encodeFramesToVideo(
         frames,
         frameRate,
@@ -187,7 +204,9 @@ class MotionCanvasVideoExportService implements VideoExportService {
           onProgress?.({
             phase: "encoding",
             progress,
-            message: `Encoding video... ${Math.round(progress * 100)}%`,
+            message: `Encoding ${options.videoSettings.format.toUpperCase()}... ${Math.round(
+              progress * 100
+            )}%`,
           });
         }
       );
@@ -275,6 +294,14 @@ class MotionCanvasVideoExportService implements VideoExportService {
       animationSteps,
       timeInSeconds
     );
+
+    // Debug: Log current step for first few frames
+    if (timeInSeconds < 1) {
+      console.log(
+        `Time ${timeInSeconds}s: currentStep=`,
+        currentStep ? `slideIndex=${currentStep.slideIndex}` : "null"
+      );
+    }
 
     if (currentStep) {
       // Calculate progress within the current step
@@ -415,18 +442,135 @@ class MotionCanvasVideoExportService implements VideoExportService {
     frames: ImageData[],
     frameRate: number,
     dimensions: { width: number; height: number },
-    format: "mp4" | "webm",
+    format: "mp4" | "webm" | "gif",
     onProgress?: (progress: number) => void
   ): Promise<Blob> {
-    // Use MediaRecorder for video encoding
-    // Motion Canvas integration would require more complex setup
-    return this.fallbackMediaRecorderExport(
-      frames,
-      frameRate,
-      dimensions,
-      format,
-      onProgress
-    );
+    if (format === "gif") {
+      return this.encodeFramesToGIF(frames, frameRate, dimensions, onProgress);
+    } else {
+      // Use MediaRecorder for video encoding
+      return this.fallbackMediaRecorderExport(
+        frames,
+        frameRate,
+        dimensions,
+        format,
+        onProgress
+      );
+    }
+  }
+
+  private async encodeFramesToGIF(
+    frames: ImageData[],
+    frameRate: number,
+    dimensions: { width: number; height: number },
+    onProgress?: (progress: number) => void
+  ): Promise<Blob> {
+    // Test GIF library first
+    console.log("Testing GIF library...");
+    const isGifWorking = await testGifLibrary();
+    if (!isGifWorking) {
+      throw new Error(
+        "GIF library is not working properly. Please check the gif.js installation."
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      // Set a timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        reject(new Error("GIF encoding timed out after 60 seconds"));
+      }, 60000);
+
+      try {
+        const gif = new GIF({
+          workers: 2, // Enable workers now that we have the worker script
+          quality: 20, // Good balance of quality and speed
+          width: dimensions.width,
+          height: dimensions.height,
+          workerScript: "/gif.worker.js", // Use the worker script
+        });
+
+        gif.on("progress", (progress: number) => {
+          console.log("GIF encoding progress:", progress);
+          onProgress?.(progress);
+        });
+
+        gif.on("finished", (blob: Blob) => {
+          console.log("GIF encoding finished, blob size:", blob.size);
+          clearTimeout(timeout);
+
+          // Create a new blob with the correct MIME type for GIF
+          const gifBlob = new Blob([blob], { type: "image/gif" });
+          resolve(gifBlob);
+        });
+
+        // Calculate delay between frames (in milliseconds)
+        const delay = Math.round(1000 / frameRate);
+
+        console.log(
+          `Adding ${frames.length} frames to GIF with delay ${delay}ms, dimensions: ${dimensions.width}x${dimensions.height}`
+        );
+
+        // Add frames with error handling - create a new canvas for each frame
+        try {
+          frames.forEach((frame, index) => {
+            // Create a new canvas for each frame to avoid reference issues
+            const frameCanvas = document.createElement("canvas");
+            frameCanvas.width = dimensions.width;
+            frameCanvas.height = dimensions.height;
+            const frameCtx = frameCanvas.getContext("2d");
+
+            if (!frameCtx) {
+              throw new Error(
+                `Failed to create canvas context for frame ${index}`
+              );
+            }
+
+            // Draw the frame data to the canvas
+            frameCtx.putImageData(frame, 0, 0);
+
+            // Debug: Check if frames are different by sampling a pixel
+            if (
+              index === 0 ||
+              index === Math.floor(frames.length / 2) ||
+              index === frames.length - 1
+            ) {
+              const imageData = frameCtx.getImageData(100, 100, 1, 1);
+              console.log(
+                `Frame ${index} pixel sample (100,100):`,
+                imageData.data
+              );
+            }
+
+            // Add this specific canvas to the GIF
+            gif.addFrame(frameCanvas, { delay });
+
+            // Log progress for debugging
+            if (index % 10 === 0) {
+              console.log(`Added frame ${index + 1}/${frames.length}`);
+            }
+          });
+        } catch (frameError) {
+          clearTimeout(timeout);
+          reject(new Error(`Failed to add frames: ${frameError}`));
+          return;
+        }
+
+        console.log("Starting GIF render...");
+
+        // Add a small delay before rendering to ensure all frames are added
+        setTimeout(() => {
+          try {
+            gif.render();
+          } catch (renderError) {
+            clearTimeout(timeout);
+            reject(new Error(`Failed to start GIF render: ${renderError}`));
+          }
+        }, 100);
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(error);
+      }
+    });
   }
 
   private async fallbackMediaRecorderExport(

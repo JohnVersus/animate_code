@@ -185,6 +185,11 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                       <SelectItem value="60">60 FPS</SelectItem>
                     </SelectContent>
                   </Select>
+                  {videoSettings.format === "gif" && (
+                    <p className="text-xs text-gray-500">
+                      Note: Lower frame rates produce smaller GIF files
+                    </p>
+                  )}
                 </div>
 
                 {/* Format */}
@@ -192,7 +197,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                   <label className="text-sm text-gray-600">Format</label>
                   <Select
                     value={videoSettings.format}
-                    onValueChange={(value: "mp4" | "webm") =>
+                    onValueChange={(value: "mp4" | "webm" | "gif") =>
                       setVideoSettings({ ...videoSettings, format: value })
                     }
                     disabled={isExporting}
@@ -203,8 +208,15 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                     <SelectContent>
                       <SelectItem value="mp4">MP4</SelectItem>
                       <SelectItem value="webm">WebM</SelectItem>
+                      <SelectItem value="gif">GIF</SelectItem>
                     </SelectContent>
                   </Select>
+                  {videoSettings.format === "gif" && (
+                    <p className="text-xs text-gray-500">
+                      Note: GIF files are larger than video formats and best for
+                      short animations
+                    </p>
+                  )}
                 </div>
               </div>
 
