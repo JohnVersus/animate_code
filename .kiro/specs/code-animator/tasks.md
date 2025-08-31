@@ -186,3 +186,26 @@
   - Add confirmation dialog when switching modes with unsaved JSON changes
   - Implement undo/redo functionality within JSON editor
   - _Requirements: 2.3, 2.4, 5.4_
+
+- [ ] 15. Fix line number animation and display issues
+- [ ] 15.1 Separate line number and code line animations
+
+  - Modify animation engine to handle line numbers and code content as separate animation layers
+  - Implement line number fade-in/fade-out animation (100-200ms duration) that occurs seamlessly before code line animation
+  - Create smooth transition where line numbers appear first, then code lines animate with the defined slide animation style
+  - Update Motion Canvas scene structure to support independent line number and code content animations
+  - Ensure the animation sequence mimics the effect of pressing enter to add new lines then typing code
+  - Test with all animation styles (fade, slide, typewriter, highlight) to ensure proper sequencing
+  - Verify that line number animations are properly rendered in MP4, WebM, and GIF exports
+  - _Requirements: 3.3, 3.4, 3.5, 4.4, 8.3, 8.4, 8.5, 8.6_
+
+- [ ] 15.2 Fix line numbering display for non-consecutive lines
+
+  - Implement always-sequential line numbering system that shows 1, 2, 3... regardless of actual code line numbers
+  - Create mapping system between sequential display numbers and actual code line numbers for proper highlighting
+  - Update animation engine to use sequential numbering while maintaining correct code line associations
+  - Ensure line number changes are animated smoothly when transitioning between slides with different line counts
+  - Handle line number updates during transitions to maintain the illusion of sequential line addition
+  - Test with various line range combinations (consecutive, non-consecutive, overlapping) to verify correct numbering
+  - Verify that sequential numbering is properly maintained in video exports (MP4, WebM, GIF)
+  - _Requirements: 2.3, 3.1, 3.2, 4.4, 7.3, 7.4_
