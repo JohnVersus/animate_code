@@ -144,16 +144,45 @@
   - Add accessibility features (ARIA labels, keyboard navigation)
   - _Requirements: 5.3, 5.4_
 
-- [ ] 13. Integrate all components and implement main application state
+- [ ] 13. Implement JSON mode for slides editing
+- [ ] 13.1 Create JSON mode toggle functionality
 
-  - Create main App component with global state management
-  - Integrate all components with proper data flow
-  - Implement auto-save triggers and state synchronization
-  - Add application-wide keyboard shortcuts and hotkeys
-  - _Requirements: 5.1, 5.2, 6.6_
+  - Add a toggle button in the slide manager to switch between visual and JSON editing modes
+  - Implement state management for tracking current editing mode (visual/JSON)
+  - Ensure the toggle button is clearly visible and accessible in the slide manager UI
+  - _Requirements: 2.3, 2.4, 5.4_
 
-- [ ] 14. Add comprehensive testing and optimization
-  - Implement code splitting and lazy loading for better performance
-  - Add memory leak detection and cleanup for Motion Canvas scenes
-  - Add performance optimization for large code files and complex animations
-  - _Requirements: All requirements validation_
+- [ ] 13.2 Build JSON editor component for slides
+
+  - Create a JSON editor component with syntax highlighting for JSON
+  - Implement real-time JSON validation to prevent corrupt data
+  - Add proper error handling and user feedback for invalid JSON
+  - Ensure the JSON editor is properly sized and integrated into the slide manager layout
+  - _Requirements: 2.1, 2.2, 7.1, 7.2_
+
+- [ ] 13.3 Implement bidirectional synchronization between visual and JSON modes
+
+  - Convert slide data to properly formatted JSON when switching to JSON mode
+  - Parse and validate JSON data when switching back to visual mode
+  - Ensure no data loss during mode transitions
+  - Handle edge cases like invalid JSON gracefully with user-friendly error messages
+  - Maintain slide order, durations, animation styles, and line ranges during conversion
+  - _Requirements: 2.1, 2.2, 2.5, 7.1, 7.2, 7.6_
+
+- [ ] 14. Add JSON mode validation and user experience enhancements
+- [ ] 14.1 Implement comprehensive JSON schema validation
+
+  - Create TypeScript schema validation for slide JSON structure
+  - Validate required fields (name, lineRanges, duration, animationStyle)
+  - Check line range format and bounds against the current code
+  - Provide detailed error messages for specific validation failures
+  - _Requirements: 2.2, 7.1, 7.2, 7.6_
+
+- [ ] 14.2 Add JSON mode user experience features
+
+  - Implement auto-formatting for JSON when switching to JSON mode
+  - Add keyboard shortcuts for common JSON editing operations
+  - Provide JSON template/example for new users
+  - Add confirmation dialog when switching modes with unsaved JSON changes
+  - Implement undo/redo functionality within JSON editor
+  - _Requirements: 2.3, 2.4, 5.4_
