@@ -8,7 +8,16 @@ export interface AnimationEngineService {
     language: string,
     lineRanges: LineRange[]
   ): any;
-  createAnimatedScene(code: string, language: string, slides: Slide[]): any;
+  createAnimatedScene(
+    code: string,
+    language: string,
+    slides: Slide[],
+    globalSpeed?: number
+  ): any;
+  getSlideLines(
+    slide: Slide,
+    code: string
+  ): { lineNumber: number; content: string }[];
   getCumulativeLines(
     slides: Slide[],
     upToSlideIndex: number,
@@ -27,6 +36,14 @@ export interface AnimationEngineService {
     code: string,
     lineRanges: LineRange[]
   ): { lineNumber: number; content: string }[];
+  renderAnimationFrame(
+    code: string,
+    language: string,
+    fromSlide: Slide | null,
+    toSlide: Slide,
+    progress: number,
+    globalSpeed?: number
+  ): any;
 }
 
 export class MotionCanvasAnimationEngine implements AnimationEngineService {
@@ -95,9 +112,18 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     };
   }
 
-  createAnimatedScene(code: string, language: string, slides: Slide[]) {
+  createAnimatedScene(
+    code: string,
+    language: string,
+    slides: Slide[],
+    globalSpeed: number = 1.0
+  ) {
     // Return animation configuration with slide transitions
-    const animationSteps = this.calculateAnimationSteps(code, slides);
+    const animationSteps = this.calculateAnimationSteps(
+      code,
+      slides,
+      globalSpeed
+    );
 
     return {
       type: "animated-scene",
@@ -105,7 +131,11 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       language,
       slides,
       animationSteps,
-      totalDuration: slides.reduce((sum, slide) => sum + slide.duration, 0),
+      totalDuration: slides.reduce(
+        (sum, slide) => sum + slide.duration / globalSpeed,
+        0
+      ),
+      globalSpeed,
       config: {
         fontSize: this.fontSize,
         lineHeight: this.lineHeight,
@@ -116,17 +146,20 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     };
   }
 
-  private calculateAnimationSteps(code: string, slides: Slide[]) {
+  private calculateAnimationSteps(
+    code: string,
+    slides: Slide[],
+    globalSpeed: number = 1.0
+  ) {
     const steps = [];
     let currentVisibleLines: Set<number> = new Set();
     let accumulatedTime = 0;
 
     for (let slideIndex = 0; slideIndex < slides.length; slideIndex++) {
       const slide = slides[slideIndex];
-      const cumulativeLines = this.getCumulativeLines(slides, slideIndex, code);
-      const nextVisibleLines = new Set(
-        cumulativeLines.map((l) => l.lineNumber)
-      );
+      // Use per-slide absolute display logic instead of cumulative
+      const slideLines = this.getSlideLines(slide, code);
+      const nextVisibleLines = new Set(slideLines.map((l) => l.lineNumber));
 
       // Calculate what lines to add/remove
       const linesToAdd = Array.from(nextVisibleLines).filter(
@@ -136,22 +169,32 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
         (line) => !nextVisibleLines.has(line)
       );
 
+      const adjustedDuration = slide.duration / globalSpeed;
+
       steps.push({
         slideIndex,
         startTime: accumulatedTime,
-        duration: slide.duration,
+        duration: adjustedDuration,
         animationStyle: slide.animationStyle,
         linesToAdd,
         linesToRemove,
         visibleLines: Array.from(nextVisibleLines).sort((a, b) => a - b),
-        cumulativeLines,
+        slideLines,
       });
 
       currentVisibleLines = nextVisibleLines;
-      accumulatedTime += slide.duration;
+      accumulatedTime += adjustedDuration;
     }
 
     return steps;
+  }
+
+  getSlideLines(
+    slide: Slide,
+    code: string
+  ): { lineNumber: number; content: string }[] {
+    // Get lines for a specific slide only (absolute display logic)
+    return this.getVisibleLines(code, slide.lineRanges);
   }
 
   getCumulativeLines(
@@ -159,6 +202,8 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     upToSlideIndex: number,
     code?: string
   ): { lineNumber: number; content: string }[] {
+    // This method is kept for preview purposes only
+    // For actual animations, use getSlideLines for per-slide absolute display
     const allLineNumbers = new Set<number>();
 
     // Collect all line numbers from slides up to the specified index
@@ -237,6 +282,156 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
     return uniqueLines;
+  }
+
+  renderAnimationFrame(
+    code: string,
+    language: string,
+    fromSlide: Slide | null,
+    toSlide: Slide,
+    progress: number,
+    globalSpeed: number = 1.0
+  ): any {
+    const fromLines = fromSlide ? this.getSlideLines(fromSlide, code) : [];
+    const toLines = this.getSlideLines(toSlide, code);
+    const diff = this.getLineDiff(fromLines, toLines);
+
+    // Apply global speed to animation timing
+    const adjustedProgress = Math.min(1, progress * globalSpeed);
+
+    return {
+      type: "animation-frame",
+      code,
+      language,
+      fromSlide,
+      toSlide,
+      progress: adjustedProgress,
+      animationStyle: toSlide.animationStyle,
+      diff,
+      renderedLines: this.calculateRenderedLines(
+        diff,
+        toSlide.animationStyle,
+        adjustedProgress
+      ),
+      config: {
+        fontSize: this.fontSize,
+        lineHeight: this.lineHeight,
+        fontFamily: this.fontFamily,
+        backgroundColor: this.backgroundColor,
+        colorScheme: this.colorScheme,
+      },
+    };
+  }
+
+  private calculateRenderedLines(
+    diff: {
+      added: { lineNumber: number; content: string }[];
+      removed: { lineNumber: number; content: string }[];
+      kept: { lineNumber: number; content: string }[];
+    },
+    animationStyle: AnimationStyle,
+    progress: number
+  ): Array<{
+    lineNumber: number;
+    content: string;
+    opacity: number;
+    animationState: "entering" | "leaving" | "stable";
+    animationProgress: number;
+  }> {
+    const renderedLines: Array<{
+      lineNumber: number;
+      content: string;
+      opacity: number;
+      animationState: "entering" | "leaving" | "stable";
+      animationProgress: number;
+    }> = [];
+
+    // Handle kept lines (always visible)
+    diff.kept.forEach((line) => {
+      renderedLines.push({
+        ...line,
+        opacity: 1,
+        animationState: "stable",
+        animationProgress: 1,
+      });
+    });
+
+    // Handle removed lines (fade out)
+    diff.removed.forEach((line) => {
+      const opacity = this.calculateLineOpacity(
+        animationStyle,
+        progress,
+        "leaving"
+      );
+      if (opacity > 0) {
+        renderedLines.push({
+          ...line,
+          opacity,
+          animationState: "leaving",
+          animationProgress: progress,
+        });
+      }
+    });
+
+    // Handle added lines (fade in with style)
+    diff.added.forEach((line) => {
+      const opacity = this.calculateLineOpacity(
+        animationStyle,
+        progress,
+        "entering"
+      );
+      if (opacity > 0) {
+        renderedLines.push({
+          ...line,
+          opacity,
+          animationState: "entering",
+          animationProgress: progress,
+        });
+      }
+    });
+
+    // Sort by line number
+    return renderedLines.sort((a, b) => a.lineNumber - b.lineNumber);
+  }
+
+  private calculateLineOpacity(
+    animationStyle: AnimationStyle,
+    progress: number,
+    state: "entering" | "leaving"
+  ): number {
+    switch (animationStyle) {
+      case "fade":
+        return state === "entering" ? progress : 1 - progress;
+
+      case "slide":
+        // Slide animation with fade
+        return state === "entering"
+          ? Math.min(1, progress * 1.5)
+          : Math.max(0, 1 - progress * 1.5);
+
+      case "typewriter":
+        // Typewriter effect - lines appear/disappear more abruptly
+        return state === "entering"
+          ? progress > 0.3
+            ? 1
+            : 0
+          : progress < 0.7
+          ? 1
+          : 0;
+
+      case "highlight":
+        // Highlight style with quick transitions
+        return state === "entering"
+          ? progress > 0.2
+            ? 1
+            : progress * 5
+          : progress < 0.8
+          ? 1
+          : (1 - progress) * 5;
+
+      default:
+        return state === "entering" ? progress : 1 - progress;
+    }
   }
 }
 

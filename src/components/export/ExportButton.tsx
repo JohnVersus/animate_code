@@ -13,6 +13,7 @@ interface ExportButtonProps {
   projectName?: string;
   disabled?: boolean;
   className?: string;
+  globalSpeed?: number;
 }
 
 export const ExportButton: React.FC<ExportButtonProps> = ({
@@ -22,6 +23,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
   projectName = "code-animation",
   disabled = false,
   className = "",
+  globalSpeed = 1.0,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [exportProgress, setExportProgress] = useState<
@@ -69,7 +71,8 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           },
           (progress) => {
             setExportProgress(progress);
-          }
+          },
+          globalSpeed
         );
 
         // Create download URL
@@ -109,7 +112,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
         });
       }
     },
-    [code, language, slides, downloadUrl]
+    [code, language, slides, downloadUrl, globalSpeed]
   );
 
   const handleCancel = useCallback(() => {

@@ -15,6 +15,8 @@ interface AnimationPreviewProps {
   isPlaying: boolean;
   onPlayStateChange: (playing: boolean) => void;
   onCurrentSlideChange?: (slideIndex: number) => void;
+  globalSpeed?: number;
+  onGlobalSpeedChange?: (speed: number) => void;
 }
 
 export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
@@ -25,6 +27,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
   isPlaying,
   onPlayStateChange,
   onCurrentSlideChange,
+  globalSpeed = 1.0,
+  onGlobalSpeedChange,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -94,29 +98,45 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
       // Ensure canvas renderer has the latest theme colors before rendering
       canvasRenderer.updateTheme();
 
-      // Use cumulative lines for better preview
-      if (slides.length > 0) {
-        const cumulativeLines = animationEngine.getCumulativeLines(
-          slides,
-          currentSlide,
-          code
-        );
+      if (previewMode === "animated" && slides.length > 0) {
+        // For animated mode, render animation frame
+        const fromSlide = currentSlide > 0 ? slides[currentSlide - 1] : null;
+        const toSlide = slides[currentSlide];
 
-        // Convert cumulative lines to proper line ranges (preserve individual lines)
-        const lineRanges =
-          cumulativeLines.length > 0
-            ? cumulativeLines.map((line) => ({
-                start: line.lineNumber,
-                end: line.lineNumber,
-              }))
-            : [];
+        if (toSlide) {
+          const animationFrame = animationEngine.renderAnimationFrame(
+            code,
+            language,
+            fromSlide,
+            toSlide,
+            animationProgress,
+            globalSpeed
+          );
+          canvasRenderer.renderAnimationFrame(
+            canvasRef.current,
+            animationFrame
+          );
+        }
+      } else if (slides.length > 0) {
+        // For static mode, show current slide only (absolute display)
+        const currentSlideData = slides[currentSlide];
+        if (currentSlideData) {
+          const slideLines = animationEngine.getSlideLines(
+            currentSlideData,
+            code
+          );
+          const lineRanges = slideLines.map((line) => ({
+            start: line.lineNumber,
+            end: line.lineNumber,
+          }));
 
-        canvasRenderer.renderCodeToCanvas(
-          canvasRef.current,
-          code,
-          language,
-          lineRanges
-        );
+          canvasRenderer.renderCodeToCanvas(
+            canvasRef.current,
+            code,
+            language,
+            lineRanges
+          );
+        }
       } else {
         // Show all code if no slides
         canvasRenderer.renderCodeToCanvas(canvasRef.current, code, language);
@@ -126,14 +146,24 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
     } finally {
       setIsRendering(false);
     }
-  }, [code, language, slides, currentSlide, previewMode, themeReady]);
+  }, [
+    code,
+    language,
+    slides,
+    currentSlide,
+    previewMode,
+    themeReady,
+    animationProgress,
+    globalSpeed,
+  ]);
 
-  // Calculate total duration when slides change (convert from milliseconds to seconds)
+  // Calculate total duration when slides change (convert from milliseconds to seconds and apply global speed)
   useEffect(() => {
     const duration =
-      slides.reduce((sum, slide) => sum + slide.duration, 0) / 1000;
+      slides.reduce((sum, slide) => sum + slide.duration / globalSpeed, 0) /
+      1000;
     setTotalDuration(duration);
-  }, [slides]);
+  }, [slides, globalSpeed]);
 
   // Animation loop for timing and progress
   const animationLoop = useCallback(
@@ -152,7 +182,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
       let foundActiveSlide = false;
 
       for (let i = 0; i < slides.length; i++) {
-        const slideDurationInSeconds = slides[i].duration / 1000; // Convert ms to seconds
+        const slideDurationInSeconds = slides[i].duration / globalSpeed / 1000; // Convert ms to seconds and apply global speed
         const slideEndTime = accumulatedTime + slideDurationInSeconds;
 
         if (elapsed >= accumulatedTime && elapsed < slideEndTime) {
@@ -190,7 +220,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
         animationRef.current = requestAnimationFrame(animationLoop);
       }
     },
-    [slides, totalDuration, isPlaying]
+    [slides, totalDuration, isPlaying, globalSpeed]
   );
 
   // Handle play/pause state changes
@@ -226,7 +256,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
     let foundSlide = false;
 
     for (let i = 0; i < slides.length; i++) {
-      const slideDurationInSeconds = slides[i].duration / 1000; // Convert ms to seconds
+      const slideDurationInSeconds = slides[i].duration / globalSpeed / 1000; // Convert ms to seconds and apply global speed
       const slideEndTime = accumulatedTime + slideDurationInSeconds;
 
       if (seekTime >= accumulatedTime && seekTime < slideEndTime) {
@@ -261,7 +291,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
     // Calculate the start time of the target slide (convert ms to seconds)
     let accumulatedTime = 0;
     for (let i = 0; i < slideIndex; i++) {
-      accumulatedTime += slides[i].duration / 1000;
+      accumulatedTime += slides[i].duration / globalSpeed / 1000;
     }
 
     handleTimelineSeek(accumulatedTime);
@@ -403,7 +433,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
                 {slides.map((_, index) => {
                   let accumulatedTime = 0;
                   for (let i = 0; i < index; i++) {
-                    accumulatedTime += slides[i].duration / 1000; // Convert ms to seconds
+                    accumulatedTime += slides[i].duration / globalSpeed / 1000; // Convert ms to seconds and apply global speed
                   }
                   const position =
                     totalDuration > 0
@@ -532,13 +562,38 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
               </div>
             )}
 
+            {/* Global speed control */}
+            {onGlobalSpeedChange && (
+              <div className="flex items-center space-x-2 text-gray-300 text-sm">
+                <span>Speed:</span>
+                <select
+                  value={globalSpeed}
+                  onChange={(e) =>
+                    onGlobalSpeedChange(parseFloat(e.target.value))
+                  }
+                  className="bg-gray-700 text-white text-xs px-2 py-1 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                >
+                  <option value={0.25}>0.25x</option>
+                  <option value={0.5}>0.5x</option>
+                  <option value={0.75}>0.75x</option>
+                  <option value={1.0}>1x</option>
+                  <option value={1.25}>1.25x</option>
+                  <option value={1.5}>1.5x</option>
+                  <option value={2.0}>2x</option>
+                </select>
+              </div>
+            )}
+
             {/* Current slide info */}
             {slides.length > 0 && slides[currentSlide] && (
               <div className="text-gray-300 text-sm">
                 <span className="font-medium">{slides[currentSlide].name}</span>
                 <span className="ml-2 text-xs">
-                  ({formatTime(slides[currentSlide].duration / 1000)}s,{" "}
-                  {slides[currentSlide].animationStyle})
+                  (
+                  {formatTime(
+                    slides[currentSlide].duration / globalSpeed / 1000
+                  )}
+                  s, {slides[currentSlide].animationStyle})
                 </span>
               </div>
             )}

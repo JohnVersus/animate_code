@@ -80,6 +80,9 @@ export default function ThreePanelLayout() {
   // State for project management
   const [currentProjectName, setCurrentProjectName] = useState<string>("");
 
+  // State for global animation speed
+  const [globalSpeed, setGlobalSpeed] = useState<number>(1.0);
+
   const handlePlayStateChange = (playing: boolean) => {
     setAnimationState((prev) => ({ ...prev, isPlaying: playing }));
   };
@@ -188,6 +191,7 @@ export default function ThreePanelLayout() {
                     slides={slides}
                     projectName={currentProjectName || "code-animation"}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
+                    globalSpeed={globalSpeed}
                   />
                 </div>
                 <div className="flex-1 p-4">
@@ -200,6 +204,8 @@ export default function ThreePanelLayout() {
                       isPlaying={animationState.isPlaying}
                       onPlayStateChange={handlePlayStateChange}
                       onCurrentSlideChange={handleSlideChange}
+                      globalSpeed={globalSpeed}
+                      onGlobalSpeedChange={setGlobalSpeed}
                     />
                   </div>
                 </div>

@@ -22,7 +22,8 @@ export interface VideoExportService {
     language: string,
     slides: Slide[],
     options: ExportOptions,
-    onProgress?: (progress: ExportProgress) => void
+    onProgress?: (progress: ExportProgress) => void,
+    globalSpeed?: number
   ): Promise<Blob>;
   cancelExport(): void;
   isExporting(): boolean;
@@ -38,7 +39,8 @@ class MotionCanvasVideoExportService implements VideoExportService {
     language: string,
     slides: Slide[],
     options: ExportOptions,
-    onProgress?: (progress: ExportProgress) => void
+    onProgress?: (progress: ExportProgress) => void,
+    globalSpeed: number = 1.0
   ): Promise<Blob> {
     if (this.isCurrentlyExporting) {
       throw new Error("Export already in progress");
@@ -81,7 +83,8 @@ class MotionCanvasVideoExportService implements VideoExportService {
       // Calculate video parameters
       const { frameRate, resolution } = options.videoSettings;
       const totalDuration =
-        slides.reduce((sum, slide) => sum + slide.duration, 0) / 1000; // Convert to seconds
+        slides.reduce((sum, slide) => sum + slide.duration / globalSpeed, 0) /
+        1000; // Convert to seconds and apply global speed
 
       // Add a small buffer at the end to ensure the last frame is visible
       const bufferDuration = 0.5; // 0.5 seconds
@@ -126,8 +129,12 @@ class MotionCanvasVideoExportService implements VideoExportService {
       const frames: ImageData[] = [];
       let currentFrame = 0;
 
-      // Generate animation steps
-      const animationSteps = this.calculateAnimationSteps(code, slides);
+      // Generate animation steps with global speed
+      const animationSteps = this.calculateAnimationSteps(
+        code,
+        slides,
+        globalSpeed
+      );
 
       // Render each frame
       for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
@@ -241,10 +248,18 @@ class MotionCanvasVideoExportService implements VideoExportService {
     }
   }
 
-  private calculateAnimationSteps(code: string, slides: Slide[]) {
-    // Reuse the animation engine's step calculation
-    return animationEngine.createAnimatedScene(code, "javascript", slides)
-      .animationSteps;
+  private calculateAnimationSteps(
+    code: string,
+    slides: Slide[],
+    globalSpeed: number = 1.0
+  ) {
+    // Reuse the animation engine's step calculation with global speed
+    return animationEngine.createAnimatedScene(
+      code,
+      "javascript",
+      slides,
+      globalSpeed
+    ).animationSteps;
   }
 
   private renderFrameAtTime(
@@ -273,27 +288,34 @@ class MotionCanvasVideoExportService implements VideoExportService {
         )
       );
 
-      // Get the visible lines for this step with animation effects
-      const visibleLineRanges = this.getAnimatedLineRanges(
-        currentStep,
-        stepProgress
+      // Create a temporary canvas for content rendering
+      const tempCanvas = document.createElement("canvas");
+      const contentSize = (canvas as any)._contentSize;
+      tempCanvas.width = contentSize.width;
+      tempCanvas.height = contentSize.height;
+
+      // Use the new animation engine to render the frame
+      const fromSlide =
+        currentStep.slideIndex > 0
+          ? this.getSlideFromStep(animationSteps, currentStep.slideIndex - 1)
+          : null;
+      const toSlide = this.getSlideFromStep(
+        animationSteps,
+        currentStep.slideIndex
       );
 
-      if (visibleLineRanges.length > 0) {
-        // Create a temporary canvas for content rendering
-        const tempCanvas = document.createElement("canvas");
-        const contentSize = (canvas as any)._contentSize;
-        tempCanvas.width = contentSize.width;
-        tempCanvas.height = contentSize.height;
-
-        // Use the existing canvas renderer for proper styling and syntax highlighting
-        canvasRenderer.updateTheme();
-        canvasRenderer.renderCodeToCanvas(
-          tempCanvas,
+      if (toSlide) {
+        const animationFrame = animationEngine.renderAnimationFrame(
           code,
           language,
-          visibleLineRanges
+          fromSlide,
+          toSlide,
+          stepProgress
         );
+
+        // Use the new canvas renderer method for animation frames
+        canvasRenderer.updateTheme();
+        canvasRenderer.renderAnimationFrame(tempCanvas, animationFrame);
 
         // Clear main canvas first
         ctx.fillStyle = "#111827";
@@ -340,83 +362,53 @@ class MotionCanvasVideoExportService implements VideoExportService {
       }
     }
 
-    // Return the last step if we're past all steps, but ensure it shows all content
+    // Return the last step if we're past all steps
     const lastStep = animationSteps[animationSteps.length - 1];
     if (lastStep) {
-      // Create a modified version of the last step that shows all content
-      return {
-        ...lastStep,
-        // Ensure we show all cumulative lines at full opacity
-        linesToAdd: [], // No new lines to animate
-        cumulativeLines: lastStep.cumulativeLines,
-      };
+      return lastStep;
     }
 
     return null;
   }
 
-  private getAnimatedLineRanges(step: any, progress: number): LineRange[] {
-    if (!step.cumulativeLines || step.cumulativeLines.length === 0) {
-      return [];
-    }
+  private getSlideFromStep(
+    animationSteps: any[],
+    slideIndex: number
+  ): Slide | null {
+    const step = animationSteps.find((s) => s.slideIndex === slideIndex);
+    if (!step || !step.slideLines) return null;
 
-    // For animation effects, we need to determine which lines should be visible
-    // based on the animation style and progress
-    let visibleLines: number[] = [];
+    // Reconstruct slide data from animation step
+    const lineRanges: LineRange[] = [];
+    const sortedLines = step.slideLines.sort(
+      (a: any, b: any) => a.lineNumber - b.lineNumber
+    );
 
-    if (step.animationStyle === "fade" || step.animationStyle === "slide") {
-      // For fade and slide animations, show all previous lines plus animated lines based on progress
-      const allLines = step.cumulativeLines.map((line: any) => line.lineNumber);
-      const newLines = step.linesToAdd || [];
-      const existingLines = allLines.filter(
-        (lineNum: number) => !newLines.includes(lineNum)
-      );
-
-      // Always show existing lines
-      visibleLines = [...existingLines];
-
-      // Add new lines based on progress (for fade/slide effects)
-      // Show new lines if progress > 0.1 to make them appear early in the animation
-      if (progress > 0.1) {
-        visibleLines = [...visibleLines, ...newLines];
-      }
-    } else if (step.animationStyle === "typewriter") {
-      // For typewriter, show all lines but the effect is handled by the canvas renderer
-      visibleLines = step.cumulativeLines.map((line: any) => line.lineNumber);
-    } else {
-      // Default: show all cumulative lines
-      visibleLines = step.cumulativeLines.map((line: any) => line.lineNumber);
-    }
-
-    // Convert line numbers to ranges
-    if (visibleLines.length === 0) {
-      return [];
-    }
-
-    // Sort line numbers
-    visibleLines.sort((a, b) => a - b);
+    if (sortedLines.length === 0) return null;
 
     // Group consecutive lines into ranges
-    const ranges: { start: number; end: number }[] = [];
-    let rangeStart = visibleLines[0];
-    let rangeEnd = visibleLines[0];
+    let rangeStart = sortedLines[0].lineNumber;
+    let rangeEnd = sortedLines[0].lineNumber;
 
-    for (let i = 1; i < visibleLines.length; i++) {
-      if (visibleLines[i] === rangeEnd + 1) {
-        // Consecutive line, extend current range
-        rangeEnd = visibleLines[i];
+    for (let i = 1; i < sortedLines.length; i++) {
+      if (sortedLines[i].lineNumber === rangeEnd + 1) {
+        rangeEnd = sortedLines[i].lineNumber;
       } else {
-        // Gap found, close current range and start new one
-        ranges.push({ start: rangeStart, end: rangeEnd });
-        rangeStart = visibleLines[i];
-        rangeEnd = visibleLines[i];
+        lineRanges.push({ start: rangeStart, end: rangeEnd });
+        rangeStart = sortedLines[i].lineNumber;
+        rangeEnd = sortedLines[i].lineNumber;
       }
     }
+    lineRanges.push({ start: rangeStart, end: rangeEnd });
 
-    // Add the final range
-    ranges.push({ start: rangeStart, end: rangeEnd });
-
-    return ranges;
+    return {
+      id: `step-${slideIndex}`,
+      name: `Slide ${slideIndex + 1}`,
+      lineRanges,
+      duration: step.duration,
+      animationStyle: step.animationStyle,
+      order: slideIndex,
+    };
   }
 
   private async encodeFramesToVideo(

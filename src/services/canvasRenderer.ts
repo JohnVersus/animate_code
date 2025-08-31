@@ -9,6 +9,7 @@ export interface CanvasRendererService {
     language: string,
     lineRanges?: LineRange[]
   ): void;
+  renderAnimationFrame(canvas: HTMLCanvasElement, animationFrame: any): void;
   getCanvasSize(code: string): { width: number; height: number };
   updateTheme(): void;
 }
@@ -216,6 +217,183 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
     return uniqueLines;
+  }
+
+  renderAnimationFrame(canvas: HTMLCanvasElement, animationFrame: any): void {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Get current theme colors
+    const theme = this.getThemeColors();
+
+    // Set up canvas with proper pixel density
+    const { width, height } = this.getCanvasSize(animationFrame.code);
+    const devicePixelRatio = window.devicePixelRatio || 1;
+
+    // Set the actual canvas size in memory (scaled for high DPI)
+    canvas.width = width * devicePixelRatio;
+    canvas.height = height * devicePixelRatio;
+
+    // Set the display size (CSS pixels)
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    // Scale the context to match device pixel ratio
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    // Clear canvas with theme background color
+    const backgroundColor = "#111827"; // Force dark background
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height);
+
+    // Set font with better rendering
+    ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+    ctx.textBaseline = "top";
+
+    // Enable better text rendering
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    // Render each line with animation effects
+    let yOffset = this.padding;
+    for (const line of animationFrame.renderedLines) {
+      this.renderAnimatedLine(
+        ctx,
+        line.content,
+        animationFrame.language,
+        line.lineNumber,
+        yOffset,
+        theme,
+        line.opacity,
+        line.animationState,
+        line.animationProgress,
+        animationFrame.animationStyle
+      );
+      yOffset += this.lineHeight;
+    }
+  }
+
+  private renderAnimatedLine(
+    ctx: CanvasRenderingContext2D,
+    line: string,
+    language: string,
+    lineNumber: number,
+    y: number,
+    theme: ThemeColorScheme,
+    opacity: number,
+    animationState: "entering" | "leaving" | "stable",
+    animationProgress: number,
+    animationStyle: string
+  ): void {
+    // Save context for opacity and transform changes
+    ctx.save();
+
+    // Apply animation-specific transforms
+    this.applyAnimationTransform(
+      ctx,
+      animationState,
+      animationProgress,
+      animationStyle,
+      y
+    );
+
+    // Apply opacity
+    ctx.globalAlpha = opacity;
+
+    // Render line number with theme color and opacity
+    ctx.fillStyle = theme.lineNumber;
+    ctx.textAlign = "right";
+    ctx.fillText(
+      String(lineNumber).padStart(3, " "),
+      this.padding + this.lineNumberWidth - 10,
+      y
+    );
+
+    // Render code content with animation effects
+    ctx.textAlign = "left";
+    const tokens =
+      syntaxHighlightingService.getLineTokens(line, language)[0] || [];
+
+    let xOffset = this.padding + this.lineNumberWidth;
+
+    // Apply highlight background for highlight animation style
+    if (animationStyle === "highlight" && animationState === "entering") {
+      const highlightOpacity = Math.min(0.3, animationProgress * 0.6);
+      ctx.save();
+      ctx.globalAlpha = highlightOpacity;
+      ctx.fillStyle = "#fbbf24"; // Yellow highlight
+      ctx.fillRect(
+        xOffset - 4,
+        y - 2,
+        ctx.measureText(line).width + 8,
+        this.lineHeight
+      );
+      ctx.restore();
+      ctx.globalAlpha = opacity; // Restore line opacity
+    }
+
+    for (const token of tokens) {
+      const tokenColor = this.getTokenColor(token.type, theme);
+      ctx.fillStyle = tokenColor;
+
+      // Apply typewriter effect character by character
+      if (animationStyle === "typewriter" && animationState === "entering") {
+        const visibleChars = Math.floor(
+          token.content.length * animationProgress
+        );
+        const visibleContent = token.content.substring(0, visibleChars);
+        if (visibleContent) {
+          ctx.fillText(visibleContent, xOffset, y);
+        }
+        xOffset += ctx.measureText(visibleContent).width;
+      } else {
+        ctx.fillText(token.content, xOffset, y);
+        xOffset += ctx.measureText(token.content).width;
+      }
+    }
+
+    // Restore context
+    ctx.restore();
+  }
+
+  private applyAnimationTransform(
+    ctx: CanvasRenderingContext2D,
+    animationState: "entering" | "leaving" | "stable",
+    animationProgress: number,
+    animationStyle: string,
+    y: number
+  ): void {
+    if (animationState === "stable") return;
+
+    switch (animationStyle) {
+      case "slide":
+        // Slide in from right or slide out to left
+        const slideOffset =
+          animationState === "entering"
+            ? (1 - animationProgress) * 50
+            : animationProgress * -50;
+        ctx.translate(slideOffset, 0);
+        break;
+
+      case "typewriter":
+        // No transform needed, handled in character rendering
+        break;
+
+      case "highlight":
+        // Slight scale effect for highlight
+        if (animationState === "entering") {
+          const scale = 0.95 + animationProgress * 0.05;
+          ctx.translate(0, y);
+          ctx.scale(scale, scale);
+          ctx.translate(0, -y);
+        }
+        break;
+
+      case "fade":
+      default:
+        // No transform for fade, just opacity
+        break;
+    }
   }
 
   getCanvasSize(code: string): { width: number; height: number } {
