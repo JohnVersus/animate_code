@@ -94,13 +94,16 @@
   - Auto save the code and code animation slides in localstorage. So on page refresh we should still be able to load the slides by clicking on the code item in the list
   - _Requirements: 6.1, 6.2, 6.3, 6.6, 6.7_
 
-- [ ] 10. Fix and enhance animation styles functionality
+- [ ] 10. Fix animation logic and enhance animation styles functionality
 
+  - Fix the flawed cumulative animation logic that always adds lines from previous slides
+  - Implement per-slide absolute display logic where each slide shows exactly what the user specified
+  - Enable proper line removal animations (fade-out) when transitioning between slides
   - Fix animation style implementations in the animation engine (fade, slide, typewriter, highlight styles are not working)
-  - Ensure animation styles are properly applied during transitions between slides
+  - Ensure animation styles are properly applied during transitions between slides with correct add/remove line detection
   - Test and verify that each animation style produces the expected visual effects
   - Add global speed/timing controls for overall animation playback speed
-  - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 9.3_
+  - _Requirements: 3.4, 3.5, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 9.3_
 
 - [ ] 11. Add error handling and user feedback
 
