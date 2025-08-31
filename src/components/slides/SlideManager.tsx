@@ -181,6 +181,21 @@ export function SlideManager({
             <span className="text-sm text-gray-500">
               {slides.length} slide{slides.length !== 1 ? "s" : ""}
             </span>
+            {editingMode === "visual" && (
+              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button size="sm">Add Slide</Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <SlideEditor
+                    totalLines={totalLines}
+                    slideCount={slides.length}
+                    onSave={handleCreateSlide}
+                    onCancel={handleCancelEdit}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
           <div className="flex items-center space-x-2">
             {/* JSON/Visual Mode Toggle */}
@@ -229,21 +244,6 @@ export function SlideManager({
                 )}
               </button>
             </div>
-            {editingMode === "visual" && (
-              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button size="sm">Add Slide</Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80" align="end">
-                  <SlideEditor
-                    totalLines={totalLines}
-                    slideCount={slides.length}
-                    onSave={handleCreateSlide}
-                    onCancel={handleCancelEdit}
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
           </div>
         </div>
       </div>
