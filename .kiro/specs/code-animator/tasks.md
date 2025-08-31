@@ -121,7 +121,7 @@
   - Add proper video controls (play/pause) for the preview
   - _Requirements: 4.3, 4.4, 5.4_
 
-- [ ] 11.3 Sync code editor highlighting with slide selection
+- [x] 11.3 Sync code editor highlighting with slide selection
 
   - Update code editor line highlighting when clicking on slides in the slide manager
   - Ensure the code editor reflects the current slide's line ranges

@@ -90,6 +90,20 @@ export default function ThreePanelLayout() {
   const handleSlideChange = (slideIndex: number) => {
     setCurrentSlide(slideIndex);
     setAnimationState((prev) => ({ ...prev, currentSlide: slideIndex }));
+
+    // Update highlighted lines based on selected slide
+    if (slides.length > 0 && slideIndex >= 0 && slideIndex < slides.length) {
+      const selectedSlide = slides[slideIndex];
+      const lines: number[] = [];
+      selectedSlide.lineRanges.forEach((range) => {
+        for (let i = range.start; i <= range.end; i++) {
+          lines.push(i);
+        }
+      });
+      setHighlightedLines(lines);
+    } else {
+      setHighlightedLines([]);
+    }
   };
 
   const handleCodeSelect = (
@@ -123,9 +137,51 @@ export default function ThreePanelLayout() {
     }
   };
 
+  const handleSlidesChange = (newSlides: Slide[]) => {
+    setSlides(newSlides);
+
+    // Update highlighted lines if current slide is still valid
+    if (
+      newSlides.length > 0 &&
+      currentSlide >= 0 &&
+      currentSlide < newSlides.length
+    ) {
+      const selectedSlide = newSlides[currentSlide];
+      const lines: number[] = [];
+      selectedSlide.lineRanges.forEach((range) => {
+        for (let i = range.start; i <= range.end; i++) {
+          lines.push(i);
+        }
+      });
+      setHighlightedLines(lines);
+    } else {
+      setHighlightedLines([]);
+    }
+  };
+
   const handleAutoSave = (projectName: string) => {
     setCurrentProjectName(projectName);
   };
+
+  // Update highlighted lines when slides or current slide changes
+  useEffect(() => {
+    if (
+      slides.length > 0 &&
+      currentSlide >= 0 &&
+      currentSlide < slides.length
+    ) {
+      const selectedSlide = slides[currentSlide];
+      const lines: number[] = [];
+      selectedSlide.lineRanges.forEach((range) => {
+        for (let i = range.start; i <= range.end; i++) {
+          lines.push(i);
+        }
+      });
+      setHighlightedLines(lines);
+    } else {
+      setHighlightedLines([]);
+    }
+  }, [slides, currentSlide]);
 
   return (
     <div className="h-full bg-gray-100">
@@ -226,7 +282,7 @@ export default function ThreePanelLayout() {
                   <SlideManager
                     slides={slides}
                     currentSlide={currentSlide}
-                    onSlidesChange={setSlides}
+                    onSlidesChange={handleSlidesChange}
                     onCurrentSlideChange={handleSlideChange}
                     totalLines={code.split("\n").length}
                   />

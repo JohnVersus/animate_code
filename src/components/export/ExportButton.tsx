@@ -29,10 +29,13 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
   const [exportProgress, setExportProgress] = useState<
     ExportProgress | undefined
   >();
-  const [exportedVideo, setExportedVideo] = useState<{
-    blob: Blob;
-    fileName: string;
-  } | null>(null);
+  const [exportedVideo, setExportedVideo] = useState<
+    | {
+        blob: Blob;
+        fileName: string;
+      }
+    | undefined
+  >(undefined);
 
   const handleExportClick = () => {
     // Validate prerequisites
@@ -59,7 +62,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
         });
 
         // Clean up previous exported video
-        setExportedVideo(null);
+        setExportedVideo(undefined);
 
         const videoBlob = await videoExportService.exportVideo(
           code,
@@ -125,7 +128,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
     // Clean up after a delay to allow the dialog to close smoothly
     setTimeout(() => {
       setExportProgress(undefined);
-      setExportedVideo(null);
+      setExportedVideo(undefined);
     }, 300);
   }, []);
 
