@@ -95,12 +95,17 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
 
   renderStaticFrame(code: string, language: string, lineRanges: LineRange[]) {
     const visibleLines = this.getVisibleLines(code, lineRanges);
+    const visibleLinesSequential = this.getVisibleLinesSequential(
+      code,
+      lineRanges
+    );
 
     return {
       type: "static-frame",
       code,
       language,
       visibleLines,
+      visibleLinesSequential,
       lineRanges,
       config: {
         fontSize: this.fontSize,
@@ -152,21 +157,24 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     globalSpeed: number = 1.0
   ) {
     const steps = [];
-    let currentVisibleLines: Set<number> = new Set();
+    let currentVisibleActualLines: Set<number> = new Set();
     let accumulatedTime = 0;
 
     for (let slideIndex = 0; slideIndex < slides.length; slideIndex++) {
       const slide = slides[slideIndex];
       // Use per-slide absolute display logic instead of cumulative
       const slideLines = this.getSlideLines(slide, code);
-      const nextVisibleLines = new Set(slideLines.map((l) => l.lineNumber));
-
-      // Calculate what lines to add/remove
-      const linesToAdd = Array.from(nextVisibleLines).filter(
-        (line) => !currentVisibleLines.has(line)
+      const slideLinesSequential = this.getSlideLinesSequential(slide, code);
+      const nextVisibleActualLines = new Set(
+        slideLines.map((l) => l.lineNumber)
       );
-      const linesToRemove = Array.from(currentVisibleLines).filter(
-        (line) => !nextVisibleLines.has(line)
+
+      // Calculate what actual lines to add/remove
+      const actualLinesToAdd = Array.from(nextVisibleActualLines).filter(
+        (line) => !currentVisibleActualLines.has(line)
+      );
+      const actualLinesToRemove = Array.from(currentVisibleActualLines).filter(
+        (line) => !nextVisibleActualLines.has(line)
       );
 
       const adjustedDuration = slide.duration / globalSpeed;
@@ -176,13 +184,14 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
         startTime: accumulatedTime,
         duration: adjustedDuration,
         animationStyle: slide.animationStyle,
-        linesToAdd,
-        linesToRemove,
-        visibleLines: Array.from(nextVisibleLines).sort((a, b) => a - b),
+        linesToAdd: actualLinesToAdd,
+        linesToRemove: actualLinesToRemove,
+        visibleLines: Array.from(nextVisibleActualLines).sort((a, b) => a - b),
         slideLines,
+        slideLinesSequential,
       });
 
-      currentVisibleLines = nextVisibleLines;
+      currentVisibleActualLines = nextVisibleActualLines;
       accumulatedTime += adjustedDuration;
     }
 
@@ -195,6 +204,21 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
   ): { lineNumber: number; content: string }[] {
     // Get lines for a specific slide only (absolute display logic)
     return this.getVisibleLines(code, slide.lineRanges);
+  }
+
+  /**
+   * Get slide lines with sequential numbering for display
+   */
+  getSlideLinesSequential(
+    slide: Slide,
+    code: string
+  ): {
+    displayLineNumber: number;
+    actualLineNumber: number;
+    content: string;
+  }[] {
+    const visibleLines = this.getVisibleLines(code, slide.lineRanges);
+    return this.getSequentialLines(visibleLines);
   }
 
   getCumulativeLines(
@@ -284,6 +308,36 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     return uniqueLines;
   }
 
+  /**
+   * Convert lines with actual line numbers to sequential display format
+   */
+  getSequentialLines(lines: { lineNumber: number; content: string }[]): {
+    displayLineNumber: number;
+    actualLineNumber: number;
+    content: string;
+  }[] {
+    return lines.map((line, index) => ({
+      displayLineNumber: index + 1,
+      actualLineNumber: line.lineNumber,
+      content: line.content,
+    }));
+  }
+
+  /**
+   * Get visible lines with sequential numbering for display
+   */
+  getVisibleLinesSequential(
+    code: string,
+    lineRanges: LineRange[]
+  ): {
+    displayLineNumber: number;
+    actualLineNumber: number;
+    content: string;
+  }[] {
+    const visibleLines = this.getVisibleLines(code, lineRanges);
+    return this.getSequentialLines(visibleLines);
+  }
+
   renderAnimationFrame(
     code: string,
     language: string,
@@ -295,6 +349,12 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     const fromLines = fromSlide ? this.getSlideLines(fromSlide, code) : [];
     const toLines = this.getSlideLines(toSlide, code);
     const diff = this.getLineDiff(fromLines, toLines);
+
+    // Get sequential lines for proper display numbering
+    const fromLinesSequential = fromSlide
+      ? this.getSlideLinesSequential(fromSlide, code)
+      : [];
+    const toLinesSequential = this.getSlideLinesSequential(toSlide, code);
 
     // Apply global speed to animation timing
     const adjustedProgress = Math.min(1, progress * globalSpeed);
@@ -308,8 +368,10 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       progress: adjustedProgress,
       animationStyle: toSlide.animationStyle,
       diff,
-      renderedLines: this.calculateRenderedLines(
+      renderedLines: this.calculateRenderedLinesSequential(
         diff,
+        fromLinesSequential,
+        toLinesSequential,
         toSlide.animationStyle,
         adjustedProgress
       ),
@@ -337,6 +399,9 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     opacity: number;
     animationState: "entering" | "leaving" | "stable";
     animationProgress: number;
+    lineNumberOpacity: number;
+    lineNumberAnimationState: "entering" | "leaving" | "stable";
+    lineNumberAnimationProgress: number;
   }> {
     const renderedLines: Array<{
       lineNumber: number;
@@ -344,6 +409,9 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       opacity: number;
       animationState: "entering" | "leaving" | "stable";
       animationProgress: number;
+      lineNumberOpacity: number;
+      lineNumberAnimationState: "entering" | "leaving" | "stable";
+      lineNumberAnimationProgress: number;
     }> = [];
 
     // Handle kept lines (always visible)
@@ -353,39 +421,58 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
         opacity: 1,
         animationState: "stable",
         animationProgress: 1,
+        lineNumberOpacity: 1,
+        lineNumberAnimationState: "stable",
+        lineNumberAnimationProgress: 1,
       });
     });
 
     // Handle removed lines (fade out)
     diff.removed.forEach((line) => {
-      const opacity = this.calculateLineOpacity(
+      const codeOpacity = this.calculateLineOpacity(
         animationStyle,
         progress,
         "leaving"
       );
-      if (opacity > 0) {
+      const lineNumberOpacity = this.calculateLineNumberOpacity(
+        progress,
+        "leaving"
+      );
+
+      if (codeOpacity > 0 || lineNumberOpacity > 0) {
         renderedLines.push({
           ...line,
-          opacity,
+          opacity: codeOpacity,
           animationState: "leaving",
           animationProgress: progress,
+          lineNumberOpacity,
+          lineNumberAnimationState: "leaving",
+          lineNumberAnimationProgress: progress,
         });
       }
     });
 
     // Handle added lines (fade in with style)
     diff.added.forEach((line) => {
-      const opacity = this.calculateLineOpacity(
+      const codeOpacity = this.calculateLineOpacity(
         animationStyle,
         progress,
         "entering"
       );
-      if (opacity > 0) {
+      const lineNumberOpacity = this.calculateLineNumberOpacity(
+        progress,
+        "entering"
+      );
+
+      if (codeOpacity > 0 || lineNumberOpacity > 0) {
         renderedLines.push({
           ...line,
-          opacity,
+          opacity: codeOpacity,
           animationState: "entering",
           animationProgress: progress,
+          lineNumberOpacity,
+          lineNumberAnimationState: "entering",
+          lineNumberAnimationProgress: progress,
         });
       }
     });
@@ -394,43 +481,204 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     return renderedLines.sort((a, b) => a.lineNumber - b.lineNumber);
   }
 
+  private calculateRenderedLinesSequential(
+    diff: {
+      added: { lineNumber: number; content: string }[];
+      removed: { lineNumber: number; content: string }[];
+      kept: { lineNumber: number; content: string }[];
+    },
+    fromLinesSequential: {
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+    }[],
+    toLinesSequential: {
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+    }[],
+    animationStyle: AnimationStyle,
+    progress: number
+  ): Array<{
+    displayLineNumber: number;
+    actualLineNumber: number;
+    content: string;
+    opacity: number;
+    animationState: "entering" | "leaving" | "stable";
+    animationProgress: number;
+    lineNumberOpacity: number;
+    lineNumberAnimationState: "entering" | "leaving" | "stable";
+    lineNumberAnimationProgress: number;
+  }> {
+    const renderedLines: Array<{
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+      opacity: number;
+      animationState: "entering" | "leaving" | "stable";
+      animationProgress: number;
+      lineNumberOpacity: number;
+      lineNumberAnimationState: "entering" | "leaving" | "stable";
+      lineNumberAnimationProgress: number;
+    }> = [];
+
+    // Create mapping from actual line numbers to sequential display numbers
+    const actualToDisplayMap = new Map<number, number>();
+    toLinesSequential.forEach((line) => {
+      actualToDisplayMap.set(line.actualLineNumber, line.displayLineNumber);
+    });
+
+    // Handle kept lines (always visible) - use sequential numbering
+    diff.kept.forEach((line) => {
+      const displayLineNumber =
+        actualToDisplayMap.get(line.lineNumber) || line.lineNumber;
+      renderedLines.push({
+        displayLineNumber,
+        actualLineNumber: line.lineNumber,
+        content: line.content,
+        opacity: 1,
+        animationState: "stable",
+        animationProgress: 1,
+        lineNumberOpacity: 1,
+        lineNumberAnimationState: "stable",
+        lineNumberAnimationProgress: 1,
+      });
+    });
+
+    // Handle removed lines (fade out) - use sequential numbering from previous state
+    const fromActualToDisplayMap = new Map<number, number>();
+    fromLinesSequential.forEach((line) => {
+      fromActualToDisplayMap.set(line.actualLineNumber, line.displayLineNumber);
+    });
+
+    diff.removed.forEach((line) => {
+      const codeOpacity = this.calculateLineOpacity(
+        animationStyle,
+        progress,
+        "leaving"
+      );
+      const lineNumberOpacity = this.calculateLineNumberOpacity(
+        progress,
+        "leaving"
+      );
+
+      if (codeOpacity > 0 || lineNumberOpacity > 0) {
+        const displayLineNumber =
+          fromActualToDisplayMap.get(line.lineNumber) || line.lineNumber;
+        renderedLines.push({
+          displayLineNumber,
+          actualLineNumber: line.lineNumber,
+          content: line.content,
+          opacity: codeOpacity,
+          animationState: "leaving",
+          animationProgress: progress,
+          lineNumberOpacity,
+          lineNumberAnimationState: "leaving",
+          lineNumberAnimationProgress: progress,
+        });
+      }
+    });
+
+    // Handle added lines (fade in with style) - use sequential numbering
+    diff.added.forEach((line) => {
+      const codeOpacity = this.calculateLineOpacity(
+        animationStyle,
+        progress,
+        "entering"
+      );
+      const lineNumberOpacity = this.calculateLineNumberOpacity(
+        progress,
+        "entering"
+      );
+
+      if (codeOpacity > 0 || lineNumberOpacity > 0) {
+        const displayLineNumber =
+          actualToDisplayMap.get(line.lineNumber) || line.lineNumber;
+        renderedLines.push({
+          displayLineNumber,
+          actualLineNumber: line.lineNumber,
+          content: line.content,
+          opacity: codeOpacity,
+          animationState: "entering",
+          animationProgress: progress,
+          lineNumberOpacity,
+          lineNumberAnimationState: "entering",
+          lineNumberAnimationProgress: progress,
+        });
+      }
+    });
+
+    // Sort by display line number for proper sequential display
+    return renderedLines.sort(
+      (a, b) => a.displayLineNumber - b.displayLineNumber
+    );
+  }
+
   private calculateLineOpacity(
     animationStyle: AnimationStyle,
     progress: number,
     state: "entering" | "leaving"
   ): number {
+    // Line numbers appear first (100-200ms), then code content follows
+    const lineNumberPhase = 0.15; // First 15% of animation is for line numbers
+    const codePhase = 1 - lineNumberPhase; // Remaining 85% for code content
+
+    // Adjust progress for code content phase
+    const codeProgress = Math.max(0, (progress - lineNumberPhase) / codePhase);
+
     switch (animationStyle) {
       case "fade":
-        return state === "entering" ? progress : 1 - progress;
+        return state === "entering" ? codeProgress : 1 - codeProgress;
 
       case "slide":
         // Slide animation with fade
         return state === "entering"
-          ? Math.min(1, progress * 1.5)
-          : Math.max(0, 1 - progress * 1.5);
+          ? Math.min(1, codeProgress * 1.5)
+          : Math.max(0, 1 - codeProgress * 1.5);
 
       case "typewriter":
         // Typewriter effect - lines appear/disappear more abruptly
         return state === "entering"
-          ? progress > 0.3
+          ? codeProgress > 0.3
             ? 1
             : 0
-          : progress < 0.7
+          : codeProgress < 0.7
           ? 1
           : 0;
 
       case "highlight":
         // Highlight style with quick transitions
         return state === "entering"
-          ? progress > 0.2
+          ? codeProgress > 0.2
             ? 1
-            : progress * 5
-          : progress < 0.8
+            : codeProgress * 5
+          : codeProgress < 0.8
           ? 1
-          : (1 - progress) * 5;
+          : (1 - codeProgress) * 5;
 
       default:
-        return state === "entering" ? progress : 1 - progress;
+        return state === "entering" ? codeProgress : 1 - codeProgress;
+    }
+  }
+
+  private calculateLineNumberOpacity(
+    progress: number,
+    state: "entering" | "leaving"
+  ): number {
+    // Line numbers have their own timing - appear in first 15% of animation
+    const lineNumberPhase = 0.15;
+
+    if (state === "entering") {
+      // Line numbers fade in during first 15% of animation (100-200ms at typical speeds)
+      const lineNumberProgress = Math.min(1, progress / lineNumberPhase);
+      return lineNumberProgress;
+    } else {
+      // Line numbers fade out during last 15% of animation
+      const lineNumberProgress = Math.max(
+        0,
+        (progress - (1 - lineNumberPhase)) / lineNumberPhase
+      );
+      return 1 - lineNumberProgress;
     }
   }
 }

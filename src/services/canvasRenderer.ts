@@ -1,6 +1,7 @@
 import { syntaxHighlightingService } from "./syntaxHighlighting";
 import { prismThemeExtractor, ThemeColorScheme } from "./prismThemeExtractor";
 import { LineRange } from "../types";
+import { MotionCanvasAnimationEngine } from "./animationEngine";
 
 export interface CanvasRendererService {
   renderCodeToCanvas(
@@ -131,16 +132,38 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       },
     });
 
-    // Get lines to render
+    // Get lines to render with sequential numbering
     const lines = code.split("\n");
-    const visibleLines = lineRanges
-      ? this.getVisibleLines(code, lineRanges)
-      : lines.map((line, index) => ({ lineNumber: index + 1, content: line }));
+    let visibleLines: {
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+    }[];
 
-    // Render each line
+    if (lineRanges) {
+      // Use animation engine to get sequential numbering for line ranges
+      const engine = new MotionCanvasAnimationEngine();
+      visibleLines = engine.getVisibleLinesSequential(code, lineRanges);
+    } else {
+      // Show all lines with sequential numbering (1, 2, 3...)
+      visibleLines = lines.map((line, index) => ({
+        displayLineNumber: index + 1,
+        actualLineNumber: index + 1,
+        content: line,
+      }));
+    }
+
+    // Render each line using display line numbers
     let yOffset = this.padding;
-    for (const { lineNumber, content } of visibleLines) {
-      this.renderLine(ctx, content, language, lineNumber, yOffset, theme);
+    for (const { displayLineNumber, content } of visibleLines) {
+      this.renderLine(
+        ctx,
+        content,
+        language,
+        displayLineNumber,
+        yOffset,
+        theme
+      );
       yOffset += this.lineHeight;
     }
   }
@@ -257,17 +280,22 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     // Render each line with animation effects
     let yOffset = this.padding;
     for (const line of animationFrame.renderedLines) {
+      // Use displayLineNumber for rendering, actualLineNumber for highlighting context
+      const displayLineNumber = line.displayLineNumber || line.lineNumber;
       this.renderAnimatedLine(
         ctx,
         line.content,
         animationFrame.language,
-        line.lineNumber,
+        displayLineNumber,
         yOffset,
         theme,
         line.opacity,
         line.animationState,
         line.animationProgress,
-        animationFrame.animationStyle
+        animationFrame.animationStyle,
+        line.lineNumberOpacity,
+        line.lineNumberAnimationState,
+        line.lineNumberAnimationProgress
       );
       yOffset += this.lineHeight;
     }
@@ -283,12 +311,94 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     opacity: number,
     animationState: "entering" | "leaving" | "stable",
     animationProgress: number,
-    animationStyle: string
+    animationStyle: string,
+    lineNumberOpacity?: number,
+    lineNumberAnimationState?: "entering" | "leaving" | "stable",
+    lineNumberAnimationProgress?: number
   ): void {
-    // Save context for opacity and transform changes
+    // Render line number with separate animation
+    this.renderLineNumber(
+      ctx,
+      lineNumber,
+      y,
+      theme,
+      lineNumberOpacity ?? opacity,
+      lineNumberAnimationState ?? animationState,
+      lineNumberAnimationProgress ?? animationProgress
+    );
+
+    // Render code content with its own animation
+    this.renderCodeContent(
+      ctx,
+      line,
+      language,
+      y,
+      theme,
+      opacity,
+      animationState,
+      animationProgress,
+      animationStyle
+    );
+  }
+
+  private renderLineNumber(
+    ctx: CanvasRenderingContext2D,
+    lineNumber: number,
+    y: number,
+    theme: ThemeColorScheme,
+    opacity: number,
+    animationState: "entering" | "leaving" | "stable",
+    animationProgress: number
+  ): void {
+    // Save context for line number animation
     ctx.save();
 
-    // Apply animation-specific transforms
+    // Apply line number specific transforms (subtle fade-in effect)
+    if (animationState === "entering") {
+      // Slight scale effect for line numbers appearing
+      const scale = 0.8 + animationProgress * 0.2;
+      ctx.translate(
+        this.padding + this.lineNumberWidth - 10,
+        y + this.fontSize / 2
+      );
+      ctx.scale(scale, scale);
+      ctx.translate(
+        -(this.padding + this.lineNumberWidth - 10),
+        -(y + this.fontSize / 2)
+      );
+    }
+
+    // Apply line number opacity
+    ctx.globalAlpha = opacity;
+
+    // Render line number with theme color
+    ctx.fillStyle = theme.lineNumber;
+    ctx.textAlign = "right";
+    ctx.fillText(
+      String(lineNumber).padStart(3, " "),
+      this.padding + this.lineNumberWidth - 10,
+      y
+    );
+
+    // Restore context
+    ctx.restore();
+  }
+
+  private renderCodeContent(
+    ctx: CanvasRenderingContext2D,
+    line: string,
+    language: string,
+    y: number,
+    theme: ThemeColorScheme,
+    opacity: number,
+    animationState: "entering" | "leaving" | "stable",
+    animationProgress: number,
+    animationStyle: string
+  ): void {
+    // Save context for code content animation
+    ctx.save();
+
+    // Apply animation-specific transforms for code content
     this.applyAnimationTransform(
       ctx,
       animationState,
@@ -297,17 +407,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       y
     );
 
-    // Apply opacity
+    // Apply code content opacity
     ctx.globalAlpha = opacity;
-
-    // Render line number with theme color and opacity
-    ctx.fillStyle = theme.lineNumber;
-    ctx.textAlign = "right";
-    ctx.fillText(
-      String(lineNumber).padStart(3, " "),
-      this.padding + this.lineNumberWidth - 10,
-      y
-    );
 
     // Render code content with animation effects
     ctx.textAlign = "left";

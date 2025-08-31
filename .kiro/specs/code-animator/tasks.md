@@ -187,8 +187,8 @@
   - Implement undo/redo functionality within JSON editor
   - _Requirements: 2.3, 2.4, 5.4_
 
-- [ ] 15. Fix line number animation and display issues
-- [ ] 15.1 Separate line number and code line animations
+- [x] 15. Fix line number animation and display issues
+- [x] 15.1 Separate line number and code line animations
 
   - Modify animation engine to handle line numbers and code content as separate animation layers
   - Implement line number fade-in/fade-out animation (100-200ms duration) that occurs seamlessly before code line animation
@@ -199,7 +199,7 @@
   - Verify that line number animations are properly rendered in MP4, WebM, and GIF exports
   - _Requirements: 3.3, 3.4, 3.5, 4.4, 8.3, 8.4, 8.5, 8.6_
 
-- [ ] 15.2 Fix line numbering display for non-consecutive lines
+- [x] 15.2 Fix line numbering display for non-consecutive lines
 
   - Implement always-sequential line numbering system that shows 1, 2, 3... regardless of actual code line numbers
   - Create mapping system between sequential display numbers and actual code line numbers for proper highlighting
