@@ -128,11 +128,10 @@
   - Maintain synchronization between slide selection and code preview
   - _Requirements: 1.4, 2.1, 3.7_
 
-- [ ] 11.4 Improve slide creation defaults and user experience
+- [x] 11.4 Improve slide creation defaults and user experience
 
   - Auto-generate slide names with pattern "slide-1", "slide-2", etc. based on slide count
-  - Remove the requirement for users to manually enter slide names during creation
-  - Allow users to edit slide names after creation if desired
+  - Remove the requirement for users to manually enter slide names during creation. Auto fill the name so user can update it if they want to.
   - Change default duration from current value to 500 milliseconds
   - _Requirements: 2.3, 2.4, 5.4_
 

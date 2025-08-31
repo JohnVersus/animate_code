@@ -145,6 +145,7 @@ export function SlideManager({
             <PopoverContent className="w-80" align="end">
               <SlideEditor
                 totalLines={totalLines}
+                slideCount={slides.length}
                 onSave={handleCreateSlide}
                 onCancel={handleCancelEdit}
               />

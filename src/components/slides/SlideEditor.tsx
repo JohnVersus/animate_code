@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 interface SlideEditorProps {
   slide?: Slide;
   totalLines: number;
+  slideCount?: number; // For auto-generating slide names
   onSave: (slideData: Omit<Slide, "id" | "order">) => void;
   onCancel: () => void;
 }
@@ -47,14 +48,18 @@ const ANIMATION_STYLES: {
 export function SlideEditor({
   slide,
   totalLines,
+  slideCount = 0,
   onSave,
   onCancel,
 }: SlideEditorProps) {
-  const [name, setName] = useState(slide?.name || "");
+  // Auto-generate slide name if creating a new slide
+  const generateSlideName = () => `slide-${slideCount + 1}`;
+
+  const [name, setName] = useState(slide?.name || generateSlideName());
   const [lineRangesText, setLineRangesText] = useState(
     slide ? formatLineRanges(slide.lineRanges) : ""
   );
-  const [duration, setDuration] = useState(slide?.duration || 2000);
+  const [duration, setDuration] = useState(slide?.duration || 500);
   const [animationStyle, setAnimationStyle] = useState<AnimationStyle>(
     slide?.animationStyle || "fade"
   );
