@@ -274,15 +274,6 @@
   - Test with code samples of varying lengths (5 lines, 20 lines, 50+ lines)
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
-- [-] 19.2 Update animation preview component with fixed dimensions
-
-  - Modify AnimationPreview component to use ViewportConfig
-  - Remove any conditional styling or sizing based on content length
-  - Implement consistent CSS dimensions for the preview container
-  - Ensure preview area maintains stable size during slide transitions
-  - Test preview stability when switching between slides of different lengths
-  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
-
 - [ ] 20. Implement 15-line scrolling window system
 - [ ] 20.1 Create scrolling window logic
 
