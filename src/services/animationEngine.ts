@@ -1,6 +1,143 @@
 import { syntaxHighlightingService, Token } from "./syntaxHighlighting";
 import { Slide, LineRange, AnimationStyle } from "../types";
 
+// Typewriter animation configuration
+export interface TypewriterAnimationConfig {
+  characterDelay: number; // milliseconds between characters
+  lineDelay: number; // additional delay between lines
+  sequentialOrder: boolean; // enforce left-to-right ordering
+}
+
+// Typewriter renderer for sequential character animation
+export class TypewriterRenderer {
+  private config: TypewriterAnimationConfig;
+
+  constructor(
+    config: TypewriterAnimationConfig = {
+      characterDelay: 50,
+      lineDelay: 200,
+      sequentialOrder: true,
+    }
+  ) {
+    this.config = config;
+  }
+
+  /**
+   * Calculate which characters should be visible at a given progress
+   * for proper left-to-right, top-to-bottom sequencing
+   */
+  calculateVisibleCharacters(
+    lines: string[],
+    progress: number,
+    globalSpeed: number = 1.0
+  ): Array<{
+    lineIndex: number;
+    visibleLength: number;
+    isComplete: boolean;
+  }> {
+    if (!this.config.sequentialOrder) {
+      // Fallback to simple per-line progress
+      return lines.map((line, index) => ({
+        lineIndex: index,
+        visibleLength: Math.floor(line.length * progress),
+        isComplete: progress >= 1,
+      }));
+    }
+
+    // Adjust timing based on global speed
+    const adjustedCharacterDelay = this.config.characterDelay / globalSpeed;
+    const adjustedLineDelay = this.config.lineDelay / globalSpeed;
+
+    // For sequential typing, we want each line to complete before the next starts
+    // Calculate progress for each line individually
+
+    const result: Array<{
+      lineIndex: number;
+      visibleLength: number;
+      isComplete: boolean;
+    }> = [];
+
+    // Each line gets equal time in the animation
+    const timePerLine = 1.0 / lines.length;
+
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+      const line = lines[lineIndex];
+      const lineStartProgress = lineIndex * timePerLine;
+      const lineEndProgress = (lineIndex + 1) * timePerLine;
+
+      if (progress <= lineStartProgress) {
+        // Haven't reached this line yet
+        result.push({
+          lineIndex,
+          visibleLength: 0,
+          isComplete: false,
+        });
+      } else if (progress >= lineEndProgress) {
+        // This line is complete
+        result.push({
+          lineIndex,
+          visibleLength: line.length,
+          isComplete: true,
+        });
+      } else {
+        // Calculate progress within this line
+        const lineProgress = (progress - lineStartProgress) / timePerLine;
+        const visibleLength = Math.floor(line.length * lineProgress);
+
+        result.push({
+          lineIndex,
+          visibleLength: Math.max(0, visibleLength),
+          isComplete: false,
+        });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Calculate typewriter progress for a specific line
+   * ensuring each line completes before the next begins
+   */
+  calculateLineProgress(
+    lineIndex: number,
+    totalLines: number,
+    globalProgress: number
+  ): number {
+    if (!this.config.sequentialOrder) {
+      return globalProgress;
+    }
+
+    // Each line gets an equal portion of the animation time
+    const lineProgressStep = 1 / totalLines;
+    const lineStartProgress = lineIndex * lineProgressStep;
+    const lineEndProgress = (lineIndex + 1) * lineProgressStep;
+
+    if (globalProgress <= lineStartProgress) {
+      return 0;
+    } else if (globalProgress >= lineEndProgress) {
+      return 1;
+    } else {
+      // Map global progress to line-specific progress
+      return (globalProgress - lineStartProgress) / lineProgressStep;
+    }
+  }
+
+  /**
+   * Update configuration
+   */
+  updateConfig(config: Partial<TypewriterAnimationConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): TypewriterAnimationConfig {
+    return { ...this.config };
+  }
+}
+
 export interface AnimationEngineService {
   createScene(code: string, language: string): any;
   renderStaticFrame(
@@ -44,6 +181,9 @@ export interface AnimationEngineService {
     progress: number,
     globalSpeed?: number
   ): any;
+  // New methods for typewriter configuration
+  updateTypewriterConfig(config: Partial<TypewriterAnimationConfig>): void;
+  getTypewriterConfig(): TypewriterAnimationConfig;
 }
 
 export class MotionCanvasAnimationEngine implements AnimationEngineService {
@@ -52,6 +192,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
   private readonly fontFamily = "JetBrains Mono, Monaco, Consolas, monospace";
   private readonly backgroundColor = "#1e1e1e";
   private readonly textColor = "#d4d4d4";
+  private readonly typewriterRenderer: TypewriterRenderer;
 
   // Syntax highlighting color scheme (VS Code Dark+ theme)
   private readonly colorScheme = {
@@ -74,6 +215,14 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     bold: "#d4d4d4",
     italic: "#d4d4d4",
   };
+
+  constructor() {
+    this.typewriterRenderer = new TypewriterRenderer({
+      characterDelay: 50,
+      lineDelay: 200,
+      sequentialOrder: true,
+    });
+  }
 
   createScene(code: string, language: string) {
     const lines = this.getCodeLines(code);
@@ -373,7 +522,8 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
         fromLinesSequential,
         toLinesSequential,
         toSlide.animationStyle,
-        adjustedProgress
+        adjustedProgress,
+        globalSpeed
       ),
       config: {
         fontSize: this.fontSize,
@@ -498,7 +648,8 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       content: string;
     }[],
     animationStyle: AnimationStyle,
-    progress: number
+    progress: number,
+    globalSpeed: number = 1.0
   ): Array<{
     displayLineNumber: number;
     actualLineNumber: number;
@@ -509,6 +660,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     lineNumberOpacity: number;
     lineNumberAnimationState: "entering" | "leaving" | "stable";
     lineNumberAnimationProgress: number;
+    typewriterProgress?: number; // Add typewriter-specific progress
   }> {
     const renderedLines: Array<{
       displayLineNumber: number;
@@ -520,7 +672,24 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       lineNumberOpacity: number;
       lineNumberAnimationState: "entering" | "leaving" | "stable";
       lineNumberAnimationProgress: number;
+      typewriterProgress?: number; // Add typewriter-specific progress
     }> = [];
+
+    // For typewriter animation, calculate sequential character visibility
+    let typewriterVisibility: Array<{
+      lineIndex: number;
+      visibleLength: number;
+      isComplete: boolean;
+    }> = [];
+
+    if (animationStyle === "typewriter" && diff.added.length > 0) {
+      const addedLines = diff.added.map((line) => line.content);
+      typewriterVisibility = this.typewriterRenderer.calculateVisibleCharacters(
+        addedLines,
+        progress,
+        globalSpeed || 1.0
+      );
+    }
 
     // Create mapping from actual line numbers to sequential display numbers
     const actualToDisplayMap = new Map<number, number>();
@@ -580,7 +749,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     });
 
     // Handle added lines (fade in with style) - use sequential numbering
-    diff.added.forEach((line) => {
+    diff.added.forEach((line, addedIndex) => {
       const codeOpacity = this.calculateLineOpacity(
         animationStyle,
         progress,
@@ -594,6 +763,18 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       if (codeOpacity > 0 || lineNumberOpacity > 0) {
         const displayLineNumber =
           actualToDisplayMap.get(line.lineNumber) || line.lineNumber;
+
+        // Calculate typewriter progress for this specific line
+        let typewriterProgress = progress;
+        if (
+          animationStyle === "typewriter" &&
+          typewriterVisibility[addedIndex]
+        ) {
+          const visibility = typewriterVisibility[addedIndex];
+          typewriterProgress =
+            visibility.visibleLength / Math.max(1, line.content.length);
+        }
+
         renderedLines.push({
           displayLineNumber,
           actualLineNumber: line.lineNumber,
@@ -604,6 +785,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
           lineNumberOpacity,
           lineNumberAnimationState: "entering",
           lineNumberAnimationProgress: progress,
+          typewriterProgress,
         });
       }
     });
@@ -612,6 +794,20 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     return renderedLines.sort(
       (a, b) => a.displayLineNumber - b.displayLineNumber
     );
+  }
+
+  /**
+   * Update typewriter animation configuration
+   */
+  updateTypewriterConfig(config: Partial<TypewriterAnimationConfig>): void {
+    this.typewriterRenderer.updateConfig(config);
+  }
+
+  /**
+   * Get current typewriter animation configuration
+   */
+  getTypewriterConfig(): TypewriterAnimationConfig {
+    return this.typewriterRenderer.getConfig();
   }
 
   private calculateLineOpacity(
@@ -637,14 +833,8 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
           : Math.max(0, 1 - codeProgress * 1.5);
 
       case "typewriter":
-        // Typewriter effect - lines appear/disappear more abruptly
-        return state === "entering"
-          ? codeProgress > 0.3
-            ? 1
-            : 0
-          : codeProgress < 0.7
-          ? 1
-          : 0;
+        // Typewriter effect - smooth opacity for sequential character animation
+        return state === "entering" ? codeProgress : 1 - codeProgress;
 
       case "highlight":
         // Highlight style with quick transitions

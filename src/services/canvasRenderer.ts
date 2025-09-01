@@ -295,7 +295,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
         animationFrame.animationStyle,
         line.lineNumberOpacity,
         line.lineNumberAnimationState,
-        line.lineNumberAnimationProgress
+        line.lineNumberAnimationProgress,
+        line.typewriterProgress
       );
       yOffset += this.lineHeight;
     }
@@ -314,7 +315,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     animationStyle: string,
     lineNumberOpacity?: number,
     lineNumberAnimationState?: "entering" | "leaving" | "stable",
-    lineNumberAnimationProgress?: number
+    lineNumberAnimationProgress?: number,
+    typewriterProgress?: number
   ): void {
     // Render line number with separate animation
     this.renderLineNumber(
@@ -337,7 +339,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       opacity,
       animationState,
       animationProgress,
-      animationStyle
+      animationStyle,
+      typewriterProgress
     );
   }
 
@@ -393,7 +396,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     opacity: number,
     animationState: "entering" | "leaving" | "stable",
     animationProgress: number,
-    animationStyle: string
+    animationStyle: string,
+    typewriterProgress?: number
   ): void {
     // Save context for code content animation
     ctx.save();
@@ -433,23 +437,52 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       ctx.globalAlpha = opacity; // Restore line opacity
     }
 
+    // For typewriter animation, calculate total visible characters for the entire line
+    let totalVisibleChars = 0;
+    if (
+      animationStyle === "typewriter" &&
+      animationState === "entering" &&
+      typewriterProgress !== undefined
+    ) {
+      totalVisibleChars = Math.floor(line.length * typewriterProgress);
+    }
+
+    let currentCharIndex = 0;
     for (const token of tokens) {
       const tokenColor = this.getTokenColor(token.type, theme);
       ctx.fillStyle = tokenColor;
 
-      // Apply typewriter effect character by character
-      if (animationStyle === "typewriter" && animationState === "entering") {
-        const visibleChars = Math.floor(
-          token.content.length * animationProgress
-        );
-        const visibleContent = token.content.substring(0, visibleChars);
+      // Apply typewriter effect with proper sequential character rendering
+      if (
+        animationStyle === "typewriter" &&
+        animationState === "entering" &&
+        typewriterProgress !== undefined
+      ) {
+        // Calculate how many characters of this token should be visible
+        const tokenStartIndex = currentCharIndex;
+        const tokenEndIndex = currentCharIndex + token.content.length;
+
+        let visibleContent = "";
+        if (totalVisibleChars > tokenStartIndex) {
+          const visibleInToken = Math.min(
+            token.content.length,
+            totalVisibleChars - tokenStartIndex
+          );
+          visibleContent = token.content.substring(
+            0,
+            Math.max(0, visibleInToken)
+          );
+        }
+
         if (visibleContent) {
           ctx.fillText(visibleContent, xOffset, y);
         }
         xOffset += ctx.measureText(visibleContent).width;
+        currentCharIndex = tokenEndIndex;
       } else {
         ctx.fillText(token.content, xOffset, y);
         xOffset += ctx.measureText(token.content).width;
+        currentCharIndex += token.content.length;
       }
     }
 
