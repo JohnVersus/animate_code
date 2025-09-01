@@ -242,3 +242,73 @@
   - Include screenshots or diagrams showing the tool's interface
   - Add contributing guidelines and license information
   - _Requirements: 5.4, 6.7_
+
+- [ ] 18. Fix typing animation sequencing for natural left-to-right flow
+- [ ] 18.1 Implement sequential character animation system
+
+  - Create TypewriterAnimationConfig interface with character delay and line delay settings
+  - Implement TypewriterRenderer class that handles proper character sequencing
+  - Modify animation engine to animate characters in strict left-to-right, top-to-bottom order
+  - Ensure each line completes fully before starting the next line
+  - Add consistent character timing across all lines in typewriter mode
+  - Test typewriter animation with various code samples to verify proper sequencing
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
+
+- [ ] 18.2 Update Motion Canvas typewriter implementation
+
+  - Modify existing typewriter animation logic in the animation engine
+  - Replace any random or out-of-order character appearance with sequential rendering
+  - Implement character-by-character animation with proper timing controls
+  - Ensure typewriter animation works correctly in both preview and video export
+  - Test with different animation speeds and verify consistent behavior
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
+
+- [ ] 19. Fix preview dimension consistency issues
+- [ ] 19.1 Implement fixed viewport system
+
+  - Create ViewportConfig interface with fixed width, height, and font size settings
+  - Implement AnimationViewport class that maintains consistent dimensions
+  - Remove any dynamic sizing logic that changes dimensions based on line count
+  - Establish fixed preview area dimensions that remain constant regardless of content
+  - Ensure font size remains consistent across all slides and line counts
+  - Test with code samples of varying lengths (5 lines, 20 lines, 50+ lines)
+  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+
+- [ ] 19.2 Update animation preview component with fixed dimensions
+
+  - Modify AnimationPreview component to use ViewportConfig
+  - Remove any conditional styling or sizing based on content length
+  - Implement consistent CSS dimensions for the preview container
+  - Ensure preview area maintains stable size during slide transitions
+  - Test preview stability when switching between slides of different lengths
+  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+
+- [ ] 20. Implement 15-line scrolling window system
+- [ ] 20.1 Create scrolling window logic
+
+  - Implement ScrollingWindow interface with maxLines set to 15
+  - Create logic to determine which lines are visible in the current window
+  - Implement window shifting algorithm that hides oldest lines when adding new ones
+  - Add smooth scrolling animation when the window shifts
+  - Ensure scrolling works correctly when transitioning between slides
+  - Handle edge cases where total lines are fewer than 15
+  - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.6, 12.7_
+
+- [ ] 20.2 Update animation engine with scrolling renderer
+
+  - Create ScrollingRenderer class that handles 15-line window display
+  - Modify Motion Canvas scene to render only visible lines within the window
+  - Implement scrolling animations that maintain visual continuity
+  - Update line numbering to work correctly with the scrolling window
+  - Ensure scrolling behavior is consistent across all animation styles
+  - Test scrolling with various slide configurations and line ranges
+  - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.6, 12.7_
+
+- [ ] 20.3 Apply scrolling system to video export
+
+  - Ensure video export uses the same 15-line scrolling window system
+  - Verify that exported videos maintain scrolling behavior correctly
+  - Test video export with long code samples to confirm scrolling works in MP4, WebM formats
+  - Ensure scrolling animations are properly rendered in exported videos
+  - Validate that video timing remains consistent with scrolling transitions
+  - _Requirements: 12.5, 12.6_

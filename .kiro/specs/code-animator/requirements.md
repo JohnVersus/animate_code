@@ -124,3 +124,41 @@ The Code Animator is a single-page web application that allows users to create a
 3. WHEN configuring timing THEN the system SHALL allow global speed adjustments
 4. WHEN customizing effects THEN the system SHALL provide preview of different transition styles
 5. WHEN settings are changed THEN the system SHALL update the preview in real-time
+
+### Requirement 10
+
+**User Story:** As a user, I want the typing animation to appear natural and sequential, so that the code looks like it's being typed from left to right in proper order.
+
+#### Acceptance Criteria
+
+1. WHEN using typewriter animation style THEN the system SHALL animate characters appearing sequentially from left to right
+2. WHEN typing animation is active THEN the system SHALL ensure characters appear in reading order (left-to-right, top-to-bottom)
+3. WHEN multiple lines are being typed THEN the system SHALL complete each line before starting the next line
+4. WHEN typing animation plays THEN the system SHALL maintain consistent character timing across all lines
+5. WHEN typewriter style is selected THEN the system SHALL not show characters appearing out of sequence or randomly
+
+### Requirement 11
+
+**User Story:** As a user, I want consistent animation preview dimensions regardless of code length, so that the preview area remains stable and doesn't resize unexpectedly.
+
+#### Acceptance Criteria
+
+1. WHEN code exceeds 20 lines THEN the system SHALL maintain consistent preview dimensions
+2. WHEN slides have no lines or few lines THEN the system SHALL not reduce font size or change preview dimensions
+3. WHEN transitioning between slides of different lengths THEN the system SHALL keep preview area size constant
+4. WHEN animation preview loads THEN the system SHALL establish fixed dimensions that don't change based on content
+5. WHEN font sizing is applied THEN the system SHALL use consistent font size regardless of line count
+
+### Requirement 12
+
+**User Story:** As a user, I want to see only the most recent 15 lines of code in the animation, so that longer code snippets display with a scrolling effect that keeps the view focused.
+
+#### Acceptance Criteria
+
+1. WHEN code has more than 15 lines THEN the system SHALL display only the last 15 lines in the animation preview
+2. WHEN new lines are added beyond 15 lines THEN the system SHALL hide the oldest lines from the top
+3. WHEN transitioning between slides THEN the system SHALL maintain the 15-line window with scrolling effect
+4. WHEN lines are removed THEN the system SHALL adjust the visible window to show up to 15 lines
+5. WHEN exporting video THEN the system SHALL apply the same 15-line limit with scrolling behavior
+6. WHEN scrolling occurs THEN the system SHALL animate the transition smoothly to maintain visual continuity
+7. WHEN fewer than 15 lines exist THEN the system SHALL display all available lines without scrolling

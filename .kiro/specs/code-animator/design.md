@@ -107,11 +107,14 @@ interface AnimationPreviewProps {
   currentSlide: number;
   isPlaying: boolean;
   onPlayStateChange: (playing: boolean) => void;
+  viewportConfig: ViewportConfig; // Fixed dimensions configuration
 }
 
 // Uses Motion Canvas for rendering animations
-// Handles different animation styles
+// Handles different animation styles with improved typewriter sequencing
 // Provides playback controls
+// Maintains fixed viewport dimensions regardless of content length
+// Implements 15-line scrolling window for long code snippets
 ```
 
 #### 5. Project Manager Component
@@ -163,6 +166,17 @@ interface AnimationEngine {
   ): Promise<void>;
   renderFrame(slide: Slide, progress: number): void;
   exportVideo(slides: Slide[], options: ExportOptions): Promise<Blob>;
+
+  // New methods for improved animations
+  renderWithScrolling(
+    lines: CodeLine[],
+    viewport: ViewportConfig
+  ): RenderedFrame;
+  animateTypewriter(
+    text: string,
+    config: TypewriterAnimationConfig
+  ): Promise<void>;
+  maintainFixedDimensions(config: ViewportConfig): void;
 }
 
 // Motion Canvas provides built-in video export:
@@ -170,6 +184,7 @@ interface AnimationEngine {
 // - High-quality output with customizable settings
 // - No need for Canvas Recording API
 // - Better performance and reliability than MediaRecorder
+// - Enhanced with scrolling viewport and fixed dimensions
 ```
 
 #### 3. Storage Service
@@ -278,6 +293,81 @@ interface AppError {
 - Provide fallback UI for component failures
 - Log errors for debugging while showing user-friendly messages
 
+## Animation Improvements Design
+
+### Sequential Typing Animation
+
+The typewriter animation style needs to be redesigned to ensure proper left-to-right, top-to-bottom character sequencing:
+
+```typescript
+interface TypewriterAnimationConfig {
+  characterDelay: number; // milliseconds between characters
+  lineDelay: number; // additional delay between lines
+  sequentialOrder: boolean; // enforce left-to-right ordering
+}
+
+class TypewriterRenderer {
+  animateText(text: string, config: TypewriterAnimationConfig): Promise<void> {
+    // Split text into lines and characters
+    // Animate each character in sequence
+    // Complete each line before starting next
+  }
+}
+```
+
+### Fixed Preview Dimensions
+
+Implement a viewport system that maintains consistent dimensions:
+
+```typescript
+interface ViewportConfig {
+  fixedWidth: number;
+  fixedHeight: number;
+  fontSize: number; // consistent font size
+  lineHeight: number;
+  maxVisibleLines: 15;
+}
+
+class AnimationViewport {
+  private config: ViewportConfig;
+
+  calculateDimensions(codeLength: number): ViewportDimensions {
+    // Always return fixed dimensions regardless of content
+    // Use scrolling for content that exceeds viewport
+  }
+}
+```
+
+### Scrolling Window System
+
+Implement a 15-line sliding window for code display:
+
+```typescript
+interface ScrollingWindow {
+  maxLines: 15;
+  currentWindow: LineRange;
+
+  updateWindow(
+    totalLines: number,
+    newLines: number[]
+  ): {
+    visibleLines: number[];
+    scrollAnimation: ScrollAnimation;
+  };
+}
+
+class ScrollingRenderer {
+  renderWithScrolling(
+    allLines: CodeLine[],
+    window: ScrollingWindow
+  ): RenderedFrame {
+    // Show only lines within the current window
+    // Animate scrolling when window shifts
+    // Maintain smooth transitions
+  }
+}
+```
+
 ## Performance Considerations
 
 ### Optimization Strategies
@@ -287,12 +377,15 @@ interface AppError {
 3. **Storage**: Implement efficient IndexedDB queries and caching
 4. **Memory Management**: Proper cleanup of Motion Canvas scenes and resources
 5. **Bundle Optimization**: Code splitting and lazy loading for export functionality
+6. **Viewport Management**: Efficient rendering of only visible lines in 15-line window
+7. **Animation Caching**: Cache character positions for typewriter animations
 
 ### Monitoring
 
 - Track animation frame rates and rendering performance
 - Monitor IndexedDB storage usage and query performance
 - Measure video export times and success rates
+- Monitor viewport scrolling performance with large code files
 
 ## Security Considerations
 
