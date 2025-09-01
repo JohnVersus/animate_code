@@ -2,6 +2,7 @@ import { syntaxHighlightingService } from "./syntaxHighlighting";
 import { prismThemeExtractor, ThemeColorScheme } from "./prismThemeExtractor";
 import { LineRange } from "../types";
 import { MotionCanvasAnimationEngine } from "./animationEngine";
+import { animationViewport, ViewportConfig } from "./viewportConfig";
 
 export interface CanvasRendererService {
   renderCodeToCanvas(
@@ -16,12 +17,6 @@ export interface CanvasRendererService {
 }
 
 export class CodeCanvasRenderer implements CanvasRendererService {
-  private readonly fontSize = 14;
-  private readonly lineHeight = 20;
-  private readonly fontFamily = "JetBrains Mono, Monaco, Consolas, monospace";
-  private readonly padding = 20;
-  private readonly lineNumberWidth = 20;
-
   // Dynamic theme colors extracted from Prism.js
   private themeColors: ThemeColorScheme | null = null;
 
@@ -90,8 +85,10 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     // Get current theme colors
     const theme = this.getThemeColors();
 
-    // Set up canvas with proper pixel density
-    const { width, height } = this.getCanvasSize(code);
+    // Use fixed viewport dimensions
+    const { width, height } = animationViewport.calculateDimensions();
+    const fontSettings = animationViewport.getFontSettings();
+    const layoutSettings = animationViewport.getLayoutSettings();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
     // Set the actual canvas size in memory (scaled for high DPI)
@@ -112,8 +109,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);
 
-    // Set font with better rendering
-    ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+    // Set font with better rendering using viewport config
+    ctx.font = `${fontSettings.fontSize}px ${fontSettings.fontFamily}`;
     ctx.textBaseline = "top";
 
     // Enable better text rendering
@@ -154,7 +151,7 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     }
 
     // Render each line using display line numbers
-    let yOffset = this.padding;
+    let yOffset = layoutSettings.padding;
     for (const { displayLineNumber, content } of visibleLines) {
       this.renderLine(
         ctx,
@@ -162,9 +159,11 @@ export class CodeCanvasRenderer implements CanvasRendererService {
         language,
         displayLineNumber,
         yOffset,
-        theme
+        theme,
+        fontSettings,
+        layoutSettings
       );
-      yOffset += this.lineHeight;
+      yOffset += fontSettings.lineHeight;
     }
   }
 
@@ -174,14 +173,21 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     language: string,
     lineNumber: number,
     y: number,
-    theme: ThemeColorScheme
+    theme: ThemeColorScheme,
+    fontSettings: { fontSize: number; lineHeight: number; fontFamily: string },
+    layoutSettings: {
+      padding: number;
+      lineNumberWidth: number;
+      contentWidth: number;
+      contentHeight: number;
+    }
   ): void {
     // Render line number with theme color
     ctx.fillStyle = theme.lineNumber;
     ctx.textAlign = "right";
     ctx.fillText(
       String(lineNumber).padStart(3, " "),
-      this.padding + this.lineNumberWidth - 10,
+      layoutSettings.padding + layoutSettings.lineNumberWidth - 10,
       y
     );
 
@@ -190,7 +196,7 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     const tokens =
       syntaxHighlightingService.getLineTokens(line, language)[0] || [];
 
-    let xOffset = this.padding + this.lineNumberWidth;
+    let xOffset = layoutSettings.padding + layoutSettings.lineNumberWidth;
     for (const token of tokens) {
       ctx.fillStyle = this.getTokenColor(token.type, theme);
       ctx.fillText(token.content, xOffset, y);
@@ -249,8 +255,10 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     // Get current theme colors
     const theme = this.getThemeColors();
 
-    // Set up canvas with proper pixel density
-    const { width, height } = this.getCanvasSize(animationFrame.code);
+    // Use fixed viewport dimensions
+    const { width, height } = animationViewport.calculateDimensions();
+    const fontSettings = animationViewport.getFontSettings();
+    const layoutSettings = animationViewport.getLayoutSettings();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
     // Set the actual canvas size in memory (scaled for high DPI)
@@ -269,8 +277,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);
 
-    // Set font with better rendering
-    ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+    // Set font with better rendering using viewport config
+    ctx.font = `${fontSettings.fontSize}px ${fontSettings.fontFamily}`;
     ctx.textBaseline = "top";
 
     // Enable better text rendering
@@ -278,7 +286,7 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     ctx.imageSmoothingQuality = "high";
 
     // Render each line with animation effects
-    let yOffset = this.padding;
+    let yOffset = layoutSettings.padding;
     for (const line of animationFrame.renderedLines) {
       // Use displayLineNumber for rendering, actualLineNumber for highlighting context
       const displayLineNumber = line.displayLineNumber || line.lineNumber;
@@ -296,9 +304,11 @@ export class CodeCanvasRenderer implements CanvasRendererService {
         line.lineNumberOpacity,
         line.lineNumberAnimationState,
         line.lineNumberAnimationProgress,
-        line.typewriterProgress
+        line.typewriterProgress,
+        fontSettings,
+        layoutSettings
       );
-      yOffset += this.lineHeight;
+      yOffset += fontSettings.lineHeight;
     }
   }
 
@@ -316,8 +326,18 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     lineNumberOpacity?: number,
     lineNumberAnimationState?: "entering" | "leaving" | "stable",
     lineNumberAnimationProgress?: number,
-    typewriterProgress?: number
+    typewriterProgress?: number,
+    fontSettings?: { fontSize: number; lineHeight: number; fontFamily: string },
+    layoutSettings?: {
+      padding: number;
+      lineNumberWidth: number;
+      contentWidth: number;
+      contentHeight: number;
+    }
   ): void {
+    const font = fontSettings || animationViewport.getFontSettings();
+    const layout = layoutSettings || animationViewport.getLayoutSettings();
+
     // Render line number with separate animation
     this.renderLineNumber(
       ctx,
@@ -326,7 +346,9 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       theme,
       lineNumberOpacity ?? opacity,
       lineNumberAnimationState ?? animationState,
-      lineNumberAnimationProgress ?? animationProgress
+      lineNumberAnimationProgress ?? animationProgress,
+      font,
+      layout
     );
 
     // Render code content with its own animation
@@ -340,7 +362,9 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       animationState,
       animationProgress,
       animationStyle,
-      typewriterProgress
+      typewriterProgress,
+      font,
+      layout
     );
   }
 
@@ -351,7 +375,14 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     theme: ThemeColorScheme,
     opacity: number,
     animationState: "entering" | "leaving" | "stable",
-    animationProgress: number
+    animationProgress: number,
+    fontSettings: { fontSize: number; lineHeight: number; fontFamily: string },
+    layoutSettings: {
+      padding: number;
+      lineNumberWidth: number;
+      contentWidth: number;
+      contentHeight: number;
+    }
   ): void {
     // Save context for line number animation
     ctx.save();
@@ -361,13 +392,13 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       // Slight scale effect for line numbers appearing
       const scale = 0.8 + animationProgress * 0.2;
       ctx.translate(
-        this.padding + this.lineNumberWidth - 10,
-        y + this.fontSize / 2
+        layoutSettings.padding + layoutSettings.lineNumberWidth - 10,
+        y + fontSettings.fontSize / 2
       );
       ctx.scale(scale, scale);
       ctx.translate(
-        -(this.padding + this.lineNumberWidth - 10),
-        -(y + this.fontSize / 2)
+        -(layoutSettings.padding + layoutSettings.lineNumberWidth - 10),
+        -(y + fontSettings.fontSize / 2)
       );
     }
 
@@ -379,7 +410,7 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     ctx.textAlign = "right";
     ctx.fillText(
       String(lineNumber).padStart(3, " "),
-      this.padding + this.lineNumberWidth - 10,
+      layoutSettings.padding + layoutSettings.lineNumberWidth - 10,
       y
     );
 
@@ -397,8 +428,18 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     animationState: "entering" | "leaving" | "stable",
     animationProgress: number,
     animationStyle: string,
-    typewriterProgress?: number
+    typewriterProgress?: number,
+    fontSettings?: { fontSize: number; lineHeight: number; fontFamily: string },
+    layoutSettings?: {
+      padding: number;
+      lineNumberWidth: number;
+      contentWidth: number;
+      contentHeight: number;
+    }
   ): void {
+    const font = fontSettings || animationViewport.getFontSettings();
+    const layout = layoutSettings || animationViewport.getLayoutSettings();
+
     // Save context for code content animation
     ctx.save();
 
@@ -408,7 +449,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       animationState,
       animationProgress,
       animationStyle,
-      y
+      y,
+      font
     );
 
     // Apply code content opacity
@@ -419,7 +461,7 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     const tokens =
       syntaxHighlightingService.getLineTokens(line, language)[0] || [];
 
-    let xOffset = this.padding + this.lineNumberWidth;
+    let xOffset = layout.padding + layout.lineNumberWidth;
 
     // Apply highlight background for highlight animation style
     if (animationStyle === "highlight" && animationState === "entering") {
@@ -431,7 +473,7 @@ export class CodeCanvasRenderer implements CanvasRendererService {
         xOffset - 4,
         y - 2,
         ctx.measureText(line).width + 8,
-        this.lineHeight
+        font.lineHeight
       );
       ctx.restore();
       ctx.globalAlpha = opacity; // Restore line opacity
@@ -495,7 +537,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     animationState: "entering" | "leaving" | "stable",
     animationProgress: number,
     animationStyle: string,
-    y: number
+    y: number,
+    fontSettings?: { fontSize: number; lineHeight: number; fontFamily: string }
   ): void {
     if (animationState === "stable") return;
 
@@ -531,33 +574,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
   }
 
   getCanvasSize(code: string): { width: number; height: number } {
-    const lines = code.split("\n");
-    const maxLineLength = Math.max(...lines.map((line) => line.length));
-
-    // Estimate width based on character count (approximate)
-    const estimatedCharWidth = this.fontSize * 0.6;
-    const contentWidth =
-      this.padding * 2 +
-      this.lineNumberWidth +
-      maxLineLength * estimatedCharWidth;
-    const contentHeight = this.padding * 2 + lines.length * this.lineHeight;
-
-    // Use a 16:9 aspect ratio as base, but ensure content fits - revert to original sizing
-    const aspectRatio = 16 / 9;
-    const minWidth = Math.max(800, contentWidth);
-    const minHeight = Math.max(450, contentHeight);
-
-    // Calculate dimensions maintaining aspect ratio while fitting content
-    let width = minWidth;
-    let height = width / aspectRatio;
-
-    // If height is too small for content, adjust width accordingly
-    if (height < minHeight) {
-      height = minHeight;
-      width = height * aspectRatio;
-    }
-
-    return { width: Math.round(width), height: Math.round(height) };
+    // Always return fixed dimensions from viewport config
+    return animationViewport.calculateDimensions();
   }
 }
 

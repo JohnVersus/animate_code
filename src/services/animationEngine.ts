@@ -1,5 +1,5 @@
-import { syntaxHighlightingService, Token } from "./syntaxHighlighting";
 import { Slide, LineRange, AnimationStyle } from "../types";
+import { animationViewport } from "./viewportConfig";
 
 // Typewriter animation configuration
 export interface TypewriterAnimationConfig {
@@ -187,9 +187,6 @@ export interface AnimationEngineService {
 }
 
 export class MotionCanvasAnimationEngine implements AnimationEngineService {
-  private readonly fontSize = 16;
-  private readonly lineHeight = 24;
-  private readonly fontFamily = "JetBrains Mono, Monaco, Consolas, monospace";
   private readonly backgroundColor = "#1e1e1e";
   private readonly textColor = "#d4d4d4";
   private readonly typewriterRenderer: TypewriterRenderer;
@@ -226,6 +223,8 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
 
   createScene(code: string, language: string) {
     const lines = this.getCodeLines(code);
+    const fontSettings = animationViewport.getFontSettings();
+    const { width, height } = animationViewport.calculateDimensions();
 
     return {
       type: "code-scene",
@@ -233,11 +232,13 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       language,
       lines,
       config: {
-        fontSize: this.fontSize,
-        lineHeight: this.lineHeight,
-        fontFamily: this.fontFamily,
+        fontSize: fontSettings.fontSize,
+        lineHeight: fontSettings.lineHeight,
+        fontFamily: fontSettings.fontFamily,
         backgroundColor: this.backgroundColor,
         colorScheme: this.colorScheme,
+        width,
+        height,
       },
     };
   }
@@ -248,6 +249,8 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       code,
       lineRanges
     );
+    const fontSettings = animationViewport.getFontSettings();
+    const { width, height } = animationViewport.calculateDimensions();
 
     return {
       type: "static-frame",
@@ -257,11 +260,13 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       visibleLinesSequential,
       lineRanges,
       config: {
-        fontSize: this.fontSize,
-        lineHeight: this.lineHeight,
-        fontFamily: this.fontFamily,
+        fontSize: fontSettings.fontSize,
+        lineHeight: fontSettings.lineHeight,
+        fontFamily: fontSettings.fontFamily,
         backgroundColor: this.backgroundColor,
         colorScheme: this.colorScheme,
+        width,
+        height,
       },
     };
   }
@@ -278,6 +283,8 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       slides,
       globalSpeed
     );
+    const fontSettings = animationViewport.getFontSettings();
+    const { width, height } = animationViewport.calculateDimensions();
 
     return {
       type: "animated-scene",
@@ -291,11 +298,13 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       ),
       globalSpeed,
       config: {
-        fontSize: this.fontSize,
-        lineHeight: this.lineHeight,
-        fontFamily: this.fontFamily,
+        fontSize: fontSettings.fontSize,
+        lineHeight: fontSettings.lineHeight,
+        fontFamily: fontSettings.fontFamily,
         backgroundColor: this.backgroundColor,
         colorScheme: this.colorScheme,
+        width,
+        height,
       },
     };
   }
@@ -508,6 +517,9 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     // Apply global speed to animation timing
     const adjustedProgress = Math.min(1, progress * globalSpeed);
 
+    const fontSettings = animationViewport.getFontSettings();
+    const { width, height } = animationViewport.calculateDimensions();
+
     return {
       type: "animation-frame",
       code,
@@ -526,11 +538,13 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
         globalSpeed
       ),
       config: {
-        fontSize: this.fontSize,
-        lineHeight: this.lineHeight,
-        fontFamily: this.fontFamily,
+        fontSize: fontSettings.fontSize,
+        lineHeight: fontSettings.lineHeight,
+        fontFamily: fontSettings.fontFamily,
         backgroundColor: this.backgroundColor,
         colorScheme: this.colorScheme,
+        width,
+        height,
       },
     };
   }
