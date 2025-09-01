@@ -168,16 +168,10 @@ console.log("Message:", message);
 
 ## 🎥 Demo Video
 
-_Demo video coming soon - showcasing the complete workflow from code input to video export_
 
-## 🖼️ Screenshots
 
-_Interface screenshots will be added here showing:_
+https://github.com/user-attachments/assets/fe950430-3627-4b37-9c49-ade84c9eee71
 
-- _Main three-panel interface_
-- _Slide management panel_
-- _Animation preview in action_
-- _Export dialog and options_
 
 ## 🏗️ Architecture
 
@@ -235,14 +229,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Credits
 
-This project was built with the help of amazing open-source tools and communities:
+This project was built with the help of amazing tools and communities:
 
 - **[Kiro](https://kiro.ai)** - The AI-powered development environment that helped architect and build this application
 - **[Motion Canvas](https://motioncanvas.io)** - The powerful animation library that makes smooth code animations possible
-- **[Prism.js](https://prismjs.com)** - For beautiful syntax highlighting across multiple languages
-- **[Next.js](https://nextjs.org)** - The React framework powering the application
-- **[Tailwind CSS](https://tailwindcss.com)** - For the responsive and modern UI design
-- **[shadcn/ui](https://ui.shadcn.com)** - For the elegant component library
+
 
 Special thanks to the open-source community for making tools like this possible!
 
