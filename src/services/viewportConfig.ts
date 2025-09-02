@@ -48,11 +48,11 @@ export class AnimationViewport {
     this.config = {
       fixedWidth: 1387,
       fixedHeight: 780,
-      fontSize: 16, // Increased from 14 to maintain readability with larger viewport
-      lineHeight: 24, // Increased from 20 to maintain proper spacing
+      fontSize: 14, // Reverted to original size for better readability in preview
+      lineHeight: 20, // Reverted to original spacing
       fontFamily: "JetBrains Mono, Monaco, Consolas, monospace",
       padding: 30, // Top and bottom padding
-      lineNumberWidth: 50, // Increased from 40 to accommodate larger font
+      lineNumberWidth: 40, // Reverted to original width
       maxVisibleLines: 15,
       ...config,
     };
@@ -393,8 +393,32 @@ export class ScrollingWindowManager implements ScrollingWindow {
   }
 }
 
-// Export singleton instance with default configuration
-export const animationViewport = new AnimationViewport();
+// Preview viewport - optimized for UI readability
+export const previewViewport = new AnimationViewport({
+  fixedWidth: 800,
+  fixedHeight: 450,
+  fontSize: 16, // Larger font for better UI readability
+  lineHeight: 22, // Adjusted for larger font
+  fontFamily: "JetBrains Mono, Monaco, Consolas, monospace",
+  padding: 20,
+  lineNumberWidth: 40,
+  maxVisibleLines: 15,
+});
+
+// Export viewport - optimized for video export with 15-line display
+export const exportViewport = new AnimationViewport({
+  fixedWidth: 1387,
+  fixedHeight: 780,
+  fontSize: 14, // Smaller font works well for video export
+  lineHeight: 20,
+  fontFamily: "JetBrains Mono, Monaco, Consolas, monospace",
+  padding: 30,
+  lineNumberWidth: 40,
+  maxVisibleLines: 15,
+});
+
+// Default viewport (for backward compatibility) - use preview settings
+export const animationViewport = previewViewport;
 
 // Export singleton scrolling window manager
 export const scrollingWindowManager = new ScrollingWindowManager(15);

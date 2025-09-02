@@ -604,6 +604,105 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     // Always return fixed dimensions from viewport config
     return animationViewport.calculateDimensions();
   }
+
+  /**
+   * Get canvas size using a specific viewport configuration
+   */
+  getCanvasSizeWithViewport(viewport: any): { width: number; height: number } {
+    return viewport.calculateDimensions();
+  }
+
+  /**
+   * Render animation frame using a specific viewport configuration
+   * Used for video export with different dimensions than preview
+   */
+  renderAnimationFrameWithViewport(
+    canvas: HTMLCanvasElement,
+    animationFrame: any,
+    viewport: any
+  ): void {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Get current theme colors
+    const theme = this.getThemeColors();
+
+    // Use the specified viewport dimensions
+    const { width, height } = viewport.calculateDimensions();
+    const fontSettings = viewport.getFontSettings();
+    const layoutSettings = viewport.getLayoutSettings();
+    const devicePixelRatio = window.devicePixelRatio || 1;
+
+    // Set the actual canvas size in memory (scaled for high DPI)
+    canvas.width = width * devicePixelRatio;
+    canvas.height = height * devicePixelRatio;
+
+    // Set the display size (CSS pixels)
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    // Scale the context to match device pixel ratio
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    // Clear canvas with theme background color
+    const backgroundColor = "#111827"; // Force dark background
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height);
+
+    // Set font with better rendering using viewport config
+    ctx.font = `${fontSettings.fontSize}px ${fontSettings.fontFamily}`;
+    ctx.textBaseline = "top";
+
+    // Enable better text rendering
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    // Handle scrolling animation if present
+    let scrollOffset = 0;
+    if (animationFrame.scrollingInfo?.scrollAnimation?.type !== "none") {
+      const scrollAnim = animationFrame.scrollingInfo.scrollAnimation;
+      // Apply smooth scrolling offset based on animation progress
+      const scrollProgress = Math.min(1, animationFrame.progress || 0);
+      if (scrollAnim.type === "scroll-up") {
+        scrollOffset = -fontSettings.lineHeight * scrollProgress;
+      } else if (scrollAnim.type === "scroll-down") {
+        scrollOffset = fontSettings.lineHeight * scrollProgress;
+      }
+    }
+
+    // Render each line with animation effects and scrolling
+    let yOffset = layoutSettings.padding + scrollOffset;
+    for (const line of animationFrame.renderedLines) {
+      // Use displayLineNumber for rendering (sequential 1, 2, 3...)
+      const displayLineNumber = line.displayLineNumber || line.lineNumber;
+
+      // Only render lines that are within the visible area
+      if (
+        yOffset >= -fontSettings.lineHeight &&
+        yOffset < height + fontSettings.lineHeight
+      ) {
+        this.renderAnimatedLine(
+          ctx,
+          line.content,
+          animationFrame.language,
+          displayLineNumber,
+          yOffset,
+          theme,
+          line.opacity,
+          line.animationState,
+          line.animationProgress,
+          animationFrame.animationStyle,
+          line.lineNumberOpacity,
+          line.lineNumberAnimationState,
+          line.lineNumberAnimationProgress,
+          line.typewriterProgress,
+          fontSettings,
+          layoutSettings
+        );
+      }
+      yOffset += fontSettings.lineHeight;
+    }
+  }
 }
 
 // Export singleton instance

@@ -1,6 +1,7 @@
 import { Slide, VideoSettings, ErrorType, AppError, LineRange } from "../types";
 import { animationEngine } from "./animationEngine";
 import { canvasRenderer } from "./canvasRenderer";
+import { exportViewport } from "./viewportConfig";
 import GIF from "gif.js";
 import { testGifLibrary } from "../utils/gifTest";
 
@@ -105,8 +106,9 @@ class MotionCanvasVideoExportService implements VideoExportService {
       // Set canvas dimensions based on resolution
       const dimensions = this.getResolutionDimensions(resolution);
 
-      // Use the canvas renderer to determine proper content sizing
-      const contentSize = canvasRenderer.getCanvasSize(code);
+      // Use the export viewport for video export sizing
+      const contentSize =
+        canvasRenderer.getCanvasSizeWithViewport(exportViewport);
 
       // Scale the content to fit the target resolution while maintaining aspect ratio
       const scaleX = dimensions.width / contentSize.width;
@@ -332,17 +334,22 @@ class MotionCanvasVideoExportService implements VideoExportService {
       );
 
       if (toSlide) {
-        const animationFrame = animationEngine.renderAnimationFrame(
+        const animationFrame = animationEngine.renderAnimationFrameWithViewport(
           code,
           language,
           fromSlide,
           toSlide,
-          stepProgress
+          stepProgress,
+          exportViewport
         );
 
-        // Use the new canvas renderer method for animation frames
+        // Use the export-specific canvas renderer method
         canvasRenderer.updateTheme();
-        canvasRenderer.renderAnimationFrame(tempCanvas, animationFrame);
+        canvasRenderer.renderAnimationFrameWithViewport(
+          tempCanvas,
+          animationFrame,
+          exportViewport
+        );
 
         // Clear main canvas first
         ctx.fillStyle = "#111827";

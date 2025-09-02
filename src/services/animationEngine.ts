@@ -989,6 +989,71 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     return this.typewriterRenderer.getConfig();
   }
 
+  /**
+   * Render animation frame using a specific viewport configuration
+   * Used for video export with different dimensions than preview
+   */
+  renderAnimationFrameWithViewport(
+    code: string,
+    language: string,
+    fromSlide: Slide | null,
+    toSlide: Slide,
+    progress: number,
+    viewport: any,
+    globalSpeed: number = 1.0
+  ): any {
+    const fromLines = fromSlide ? this.getSlideLines(fromSlide, code) : [];
+    const toLines = this.getSlideLines(toSlide, code);
+    const diff = this.getLineDiff(fromLines, toLines);
+
+    // Use scrolling renderer to get properly windowed lines
+    const allCodeLines = this.getCodeLines(code);
+    const scrollingResult = this.scrollingRenderer.updateWindowForSlide(
+      toSlide,
+      allCodeLines
+    );
+
+    // Apply global speed to animation timing
+    const adjustedProgress = Math.min(1, progress * globalSpeed);
+
+    const fontSettings = viewport.getFontSettings();
+    const { width, height } = viewport.calculateDimensions();
+
+    // Calculate rendered lines with scrolling window applied
+    const renderedLines = this.calculateRenderedLinesWithScrolling(
+      diff,
+      scrollingResult.visibleLines,
+      toSlide.animationStyle,
+      adjustedProgress,
+      globalSpeed
+    );
+
+    return {
+      type: "animation-frame",
+      code,
+      language,
+      fromSlide,
+      toSlide,
+      progress: adjustedProgress,
+      animationStyle: toSlide.animationStyle,
+      diff,
+      renderedLines,
+      scrollingInfo: {
+        windowInfo: scrollingResult.windowInfo,
+        scrollAnimation: scrollingResult.scrollAnimation,
+      },
+      config: {
+        fontSize: fontSettings.fontSize,
+        lineHeight: fontSettings.lineHeight,
+        fontFamily: fontSettings.fontFamily,
+        backgroundColor: this.backgroundColor,
+        colorScheme: this.colorScheme,
+        width,
+        height,
+      },
+    };
+  }
+
   private calculateLineOpacity(
     animationStyle: AnimationStyle,
     progress: number,
