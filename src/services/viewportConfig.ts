@@ -353,19 +353,30 @@ export class ScrollingWindowManager implements ScrollingWindow {
     // Find optimal window to show target lines
     const minTargetLine = Math.min(...targetLines);
     const maxTargetLine = Math.max(...targetLines);
+    const targetLineCount = maxTargetLine - minTargetLine + 1;
 
-    // Try to center the target lines in the window
-    const targetCenter = Math.floor((minTargetLine + maxTargetLine) / 2);
-    const windowStart = Math.max(
-      1,
-      targetCenter - Math.floor(this.maxLines / 2)
-    );
-    const windowEnd = Math.min(totalLines, windowStart + this.maxLines - 1);
+    // If the target lines span more than maxLines, show the end of the range
+    // This ensures we show the most recent lines when the range is large
+    if (targetLineCount > this.maxLines) {
+      // Show the last maxLines of the target range
+      const windowEnd = maxTargetLine;
+      const windowStart = Math.max(1, windowEnd - this.maxLines + 1);
 
-    // Adjust start if we hit the end boundary
-    const adjustedStart = Math.max(1, windowEnd - this.maxLines + 1);
+      this.currentWindow = { startLine: windowStart, endLine: windowEnd };
+    } else {
+      // Try to center the target lines in the window
+      const targetCenter = Math.floor((minTargetLine + maxTargetLine) / 2);
+      const windowStart = Math.max(
+        1,
+        targetCenter - Math.floor(this.maxLines / 2)
+      );
+      const windowEnd = Math.min(totalLines, windowStart + this.maxLines - 1);
 
-    this.currentWindow = { startLine: adjustedStart, endLine: windowEnd };
+      // Adjust start if we hit the end boundary
+      const adjustedStart = Math.max(1, windowEnd - this.maxLines + 1);
+
+      this.currentWindow = { startLine: adjustedStart, endLine: windowEnd };
+    }
 
     const visibleLines = Array.from(
       { length: this.currentWindow.endLine - this.currentWindow.startLine + 1 },

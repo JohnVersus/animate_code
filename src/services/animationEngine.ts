@@ -196,11 +196,11 @@ export class ScrollingRenderer {
     );
     const window = this.scrollingWindow.getCurrentWindow();
 
-    // Filter lines that are within the visible window
+    // Filter lines that are within the visible window and use actual line numbers for display
     const visibleLines = allLines
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
-      .map((line, index) => ({
-        displayLineNumber: index + 1, // Sequential numbering 1, 2, 3...
+      .map((line) => ({
+        displayLineNumber: line.lineNumber, // Use actual line number, not sequential
         actualLineNumber: line.lineNumber,
         content: line.content,
       }))
@@ -255,7 +255,28 @@ export class ScrollingRenderer {
     // Get target line numbers for window positioning
     const targetLines = uniqueSlideLines.map((line) => line.lineNumber);
 
-    return this.renderWithScrolling(uniqueSlideLines, targetLines);
+    // Use the scrolling window to determine which lines are visible
+    const result = this.scrollingWindow.setWindowForLines(
+      targetLines,
+      allCodeLines.length
+    );
+    const window = this.scrollingWindow.getCurrentWindow();
+
+    // Filter lines that are within the visible window and use actual line numbers for display
+    const visibleLines = uniqueSlideLines
+      .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
+      .map((line) => ({
+        displayLineNumber: line.lineNumber, // Use actual line number, not sequential
+        actualLineNumber: line.lineNumber,
+        content: line.content,
+      }))
+      .sort((a, b) => a.actualLineNumber - b.actualLineNumber);
+
+    return {
+      visibleLines,
+      scrollAnimation: result.scrollAnimation,
+      windowInfo: window,
+    };
   }
 
   /**
@@ -524,6 +545,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
 
   /**
    * Get slide lines with sequential numbering for display
+   * For video export, we want to show actual line numbers, not sequential
    */
   getSlideLinesSequential(
     slide: Slide,
@@ -534,7 +556,12 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     content: string;
   }[] {
     const visibleLines = this.getVisibleLines(code, slide.lineRanges);
-    return this.getSequentialLines(visibleLines);
+    // For video export, use actual line numbers instead of sequential
+    return visibleLines.map((line) => ({
+      displayLineNumber: line.lineNumber, // Use actual line number
+      actualLineNumber: line.lineNumber,
+      content: line.content,
+    }));
   }
 
   getCumulativeLines(
@@ -641,6 +668,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
 
   /**
    * Get visible lines with sequential numbering for display
+   * For video export, we want to show actual line numbers, not sequential
    */
   getVisibleLinesSequential(
     code: string,
@@ -651,7 +679,12 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     content: string;
   }[] {
     const visibleLines = this.getVisibleLines(code, lineRanges);
-    return this.getSequentialLines(visibleLines);
+    // For video export, use actual line numbers instead of sequential
+    return visibleLines.map((line) => ({
+      displayLineNumber: line.lineNumber, // Use actual line number
+      actualLineNumber: line.lineNumber,
+      content: line.content,
+    }));
   }
 
   renderAnimationFrame(
