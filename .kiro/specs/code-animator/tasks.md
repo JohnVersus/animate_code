@@ -274,8 +274,8 @@
   - Test with code samples of varying lengths (5 lines, 20 lines, 50+ lines)
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
-- [ ] 20. Optimize viewport dimensions for better video export compatibility
-- [ ] 20.1 Increase viewport dimensions to support more visible lines
+- [x] 20. Optimize viewport dimensions for better video export compatibility
+- [x] 20.1 Increase viewport dimensions to support more visible lines
 
   - Update ViewportConfig to increase fixedWidth from 800px to 1200px and fixedHeight from 450px to 675px
   - Maintain 16:9 aspect ratio for video export compatibility
@@ -284,7 +284,7 @@
   - Verify that video export now correctly shows the intended number of lines
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 12.5_
 
-- [ ] 20.2 Implement 15-line scrolling window system with optimized viewport
+- [x] 20.2 Implement 15-line scrolling window system with optimized viewport
 
   - Implement ScrollingWindow interface with maxLines set to 15
   - Create logic to determine which lines are visible in the current window
@@ -295,7 +295,7 @@
   - Test scrolling behavior with the new larger viewport dimensions
   - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.6, 12.7_
 
-- [ ] 20.3 Update animation engine with scrolling renderer
+- [x] 20.3 Update animation engine with scrolling renderer
 
   - Create ScrollingRenderer class that handles 15-line window display
   - Modify Motion Canvas scene to render only visible lines within the window
@@ -306,7 +306,7 @@
   - Verify scrolling works properly with the optimized viewport dimensions
   - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.6, 12.7_
 
-- [ ] 20.4 Apply scrolling system to video export with optimized dimensions
+- [x] 20.4 Apply scrolling system to video export with optimized dimensions
 
   - Ensure video export uses the same 15-line scrolling window system
   - Verify that exported videos maintain scrolling behavior correctly with the larger viewport

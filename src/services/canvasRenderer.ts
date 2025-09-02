@@ -150,19 +150,25 @@ export class CodeCanvasRenderer implements CanvasRendererService {
       }));
     }
 
-    // Render each line using display line numbers
+    // Render each line using display line numbers (now with scrolling support)
     let yOffset = layoutSettings.padding;
     for (const { displayLineNumber, content } of visibleLines) {
-      this.renderLine(
-        ctx,
-        content,
-        language,
-        displayLineNumber,
-        yOffset,
-        theme,
-        fontSettings,
-        layoutSettings
-      );
+      // Only render lines that are within the visible area (scrolling window)
+      if (
+        yOffset >= -fontSettings.lineHeight &&
+        yOffset < height + fontSettings.lineHeight
+      ) {
+        this.renderLine(
+          ctx,
+          content,
+          language,
+          displayLineNumber,
+          yOffset,
+          theme,
+          fontSettings,
+          layoutSettings
+        );
+      }
       yOffset += fontSettings.lineHeight;
     }
   }
@@ -285,29 +291,50 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
 
-    // Render each line with animation effects
-    let yOffset = layoutSettings.padding;
+    // Handle scrolling animation if present
+    let scrollOffset = 0;
+    if (animationFrame.scrollingInfo?.scrollAnimation?.type !== "none") {
+      const scrollAnim = animationFrame.scrollingInfo.scrollAnimation;
+      // Apply smooth scrolling offset based on animation progress
+      // This could be enhanced with easing functions
+      const scrollProgress = Math.min(1, animationFrame.progress || 0);
+      if (scrollAnim.type === "scroll-up") {
+        scrollOffset = -fontSettings.lineHeight * scrollProgress;
+      } else if (scrollAnim.type === "scroll-down") {
+        scrollOffset = fontSettings.lineHeight * scrollProgress;
+      }
+    }
+
+    // Render each line with animation effects and scrolling
+    let yOffset = layoutSettings.padding + scrollOffset;
     for (const line of animationFrame.renderedLines) {
-      // Use displayLineNumber for rendering, actualLineNumber for highlighting context
+      // Use displayLineNumber for rendering (sequential 1, 2, 3...)
       const displayLineNumber = line.displayLineNumber || line.lineNumber;
-      this.renderAnimatedLine(
-        ctx,
-        line.content,
-        animationFrame.language,
-        displayLineNumber,
-        yOffset,
-        theme,
-        line.opacity,
-        line.animationState,
-        line.animationProgress,
-        animationFrame.animationStyle,
-        line.lineNumberOpacity,
-        line.lineNumberAnimationState,
-        line.lineNumberAnimationProgress,
-        line.typewriterProgress,
-        fontSettings,
-        layoutSettings
-      );
+
+      // Only render lines that are within the visible area
+      if (
+        yOffset >= -fontSettings.lineHeight &&
+        yOffset < height + fontSettings.lineHeight
+      ) {
+        this.renderAnimatedLine(
+          ctx,
+          line.content,
+          animationFrame.language,
+          displayLineNumber,
+          yOffset,
+          theme,
+          line.opacity,
+          line.animationState,
+          line.animationProgress,
+          animationFrame.animationStyle,
+          line.lineNumberOpacity,
+          line.lineNumberAnimationState,
+          line.lineNumberAnimationProgress,
+          line.typewriterProgress,
+          fontSettings,
+          layoutSettings
+        );
+      }
       yOffset += fontSettings.lineHeight;
     }
   }

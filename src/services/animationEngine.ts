@@ -1,5 +1,9 @@
 import { Slide, LineRange, AnimationStyle } from "../types";
-import { animationViewport } from "./viewportConfig";
+import {
+  animationViewport,
+  ScrollingWindowManager,
+  ScrollAnimation,
+} from "./viewportConfig";
 
 // Typewriter animation configuration
 export interface TypewriterAnimationConfig {
@@ -138,6 +142,151 @@ export class TypewriterRenderer {
   }
 }
 
+/**
+ * ScrollingRenderer class that handles 15-line window display
+ * Implements requirements 12.1, 12.2, 12.3, 12.4, 12.6, 12.7
+ */
+export class ScrollingRenderer {
+  private scrollingWindow: ScrollingWindowManager;
+
+  constructor(maxLines: number = 15) {
+    this.scrollingWindow = new ScrollingWindowManager(maxLines);
+  }
+
+  /**
+   * Render lines within the scrolling window
+   */
+  renderWithScrolling(
+    allLines: { lineNumber: number; content: string }[],
+    targetLines?: number[]
+  ): {
+    visibleLines: {
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+    }[];
+    scrollAnimation: ScrollAnimation;
+    windowInfo: { startLine: number; endLine: number };
+  } {
+    if (allLines.length === 0) {
+      return {
+        visibleLines: [],
+        scrollAnimation: {
+          type: "none",
+          duration: 0,
+          fromWindow: { startLine: 1, endLine: 15 },
+          toWindow: { startLine: 1, endLine: 15 },
+        },
+        windowInfo: { startLine: 1, endLine: 15 },
+      };
+    }
+
+    // Get the highest line number to determine total lines
+    const totalLines = Math.max(...allLines.map((line) => line.lineNumber));
+
+    // Update scrolling window based on target lines or all lines
+    const linesToConsider =
+      targetLines && targetLines.length > 0
+        ? targetLines
+        : allLines.map((line) => line.lineNumber);
+
+    const result = this.scrollingWindow.setWindowForLines(
+      linesToConsider,
+      totalLines
+    );
+    const window = this.scrollingWindow.getCurrentWindow();
+
+    // Filter lines that are within the visible window
+    const visibleLines = allLines
+      .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
+      .map((line, index) => ({
+        displayLineNumber: index + 1, // Sequential numbering 1, 2, 3...
+        actualLineNumber: line.lineNumber,
+        content: line.content,
+      }))
+      .sort((a, b) => a.actualLineNumber - b.actualLineNumber);
+
+    return {
+      visibleLines,
+      scrollAnimation: result.scrollAnimation,
+      windowInfo: window,
+    };
+  }
+
+  /**
+   * Update window for slide transition
+   */
+  updateWindowForSlide(
+    slide: Slide,
+    allCodeLines: string[]
+  ): {
+    visibleLines: {
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+    }[];
+    scrollAnimation: ScrollAnimation;
+    windowInfo: { startLine: number; endLine: number };
+  } {
+    // Get all lines that should be visible for this slide
+    const slideLines: { lineNumber: number; content: string }[] = [];
+
+    for (const range of slide.lineRanges) {
+      for (
+        let i = range.start;
+        i <= range.end && i <= allCodeLines.length;
+        i++
+      ) {
+        slideLines.push({
+          lineNumber: i,
+          content: allCodeLines[i - 1] || "",
+        });
+      }
+    }
+
+    // Remove duplicates and sort
+    const uniqueSlideLines = slideLines
+      .filter(
+        (line, index, array) =>
+          array.findIndex((l) => l.lineNumber === line.lineNumber) === index
+      )
+      .sort((a, b) => a.lineNumber - b.lineNumber);
+
+    // Get target line numbers for window positioning
+    const targetLines = uniqueSlideLines.map((line) => line.lineNumber);
+
+    return this.renderWithScrolling(uniqueSlideLines, targetLines);
+  }
+
+  /**
+   * Get current window information
+   */
+  getCurrentWindow(): { startLine: number; endLine: number } {
+    return this.scrollingWindow.getCurrentWindow();
+  }
+
+  /**
+   * Check if a line is currently visible
+   */
+  isLineVisible(lineNumber: number): boolean {
+    return this.scrollingWindow.isLineVisible(lineNumber);
+  }
+
+  /**
+   * Reset scrolling window to default position
+   */
+  reset(): void {
+    this.scrollingWindow.reset();
+  }
+
+  /**
+   * Get display line number for an actual line number
+   */
+  getDisplayLineNumber(actualLineNumber: number): number | null {
+    return this.scrollingWindow.getDisplayLineNumber(actualLineNumber);
+  }
+}
+
 export interface AnimationEngineService {
   createScene(code: string, language: string): any;
   renderStaticFrame(
@@ -190,6 +339,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
   private readonly backgroundColor = "#1e1e1e";
   private readonly textColor = "#d4d4d4";
   private readonly typewriterRenderer: TypewriterRenderer;
+  private readonly scrollingRenderer: ScrollingRenderer;
 
   // Syntax highlighting color scheme (VS Code Dark+ theme)
   private readonly colorScheme = {
@@ -219,6 +369,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       lineDelay: 200,
       sequentialOrder: true,
     });
+    this.scrollingRenderer = new ScrollingRenderer(15);
   }
 
   createScene(code: string, language: string) {
@@ -245,10 +396,13 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
 
   renderStaticFrame(code: string, language: string, lineRanges: LineRange[]) {
     const visibleLines = this.getVisibleLines(code, lineRanges);
-    const visibleLinesSequential = this.getVisibleLinesSequential(
-      code,
-      lineRanges
+
+    // Use scrolling renderer for consistent 15-line window display
+    const scrollingResult = this.scrollingRenderer.renderWithScrolling(
+      visibleLines,
+      visibleLines.map((line) => line.lineNumber)
     );
+
     const fontSettings = animationViewport.getFontSettings();
     const { width, height } = animationViewport.calculateDimensions();
 
@@ -256,9 +410,13 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       type: "static-frame",
       code,
       language,
-      visibleLines,
-      visibleLinesSequential,
+      visibleLines: scrollingResult.visibleLines,
+      visibleLinesSequential: scrollingResult.visibleLines, // Same as visibleLines now with scrolling
       lineRanges,
+      scrollingInfo: {
+        windowInfo: scrollingResult.windowInfo,
+        scrollAnimation: scrollingResult.scrollAnimation,
+      },
       config: {
         fontSize: fontSettings.fontSize,
         lineHeight: fontSettings.lineHeight,
@@ -508,17 +666,27 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     const toLines = this.getSlideLines(toSlide, code);
     const diff = this.getLineDiff(fromLines, toLines);
 
-    // Get sequential lines for proper display numbering
-    const fromLinesSequential = fromSlide
-      ? this.getSlideLinesSequential(fromSlide, code)
-      : [];
-    const toLinesSequential = this.getSlideLinesSequential(toSlide, code);
+    // Use scrolling renderer to get properly windowed lines
+    const allCodeLines = this.getCodeLines(code);
+    const scrollingResult = this.scrollingRenderer.updateWindowForSlide(
+      toSlide,
+      allCodeLines
+    );
 
     // Apply global speed to animation timing
     const adjustedProgress = Math.min(1, progress * globalSpeed);
 
     const fontSettings = animationViewport.getFontSettings();
     const { width, height } = animationViewport.calculateDimensions();
+
+    // Calculate rendered lines with scrolling window applied
+    const renderedLines = this.calculateRenderedLinesWithScrolling(
+      diff,
+      scrollingResult.visibleLines,
+      toSlide.animationStyle,
+      adjustedProgress,
+      globalSpeed
+    );
 
     return {
       type: "animation-frame",
@@ -529,14 +697,11 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       progress: adjustedProgress,
       animationStyle: toSlide.animationStyle,
       diff,
-      renderedLines: this.calculateRenderedLinesSequential(
-        diff,
-        fromLinesSequential,
-        toLinesSequential,
-        toSlide.animationStyle,
-        adjustedProgress,
-        globalSpeed
-      ),
+      renderedLines,
+      scrollingInfo: {
+        windowInfo: scrollingResult.windowInfo,
+        scrollAnimation: scrollingResult.scrollAnimation,
+      },
       config: {
         fontSize: fontSettings.fontSize,
         lineHeight: fontSettings.lineHeight,
@@ -884,6 +1049,143 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       );
       return 1 - lineNumberProgress;
     }
+  }
+
+  /**
+   * Calculate rendered lines with scrolling window applied
+   * This method handles the 15-line window and ensures proper line numbering
+   */
+  private calculateRenderedLinesWithScrolling(
+    diff: {
+      added: { lineNumber: number; content: string }[];
+      removed: { lineNumber: number; content: string }[];
+      kept: { lineNumber: number; content: string }[];
+    },
+    visibleLines: {
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+    }[],
+    animationStyle: AnimationStyle,
+    progress: number,
+    globalSpeed: number = 1.0
+  ): Array<{
+    displayLineNumber: number;
+    actualLineNumber: number;
+    content: string;
+    opacity: number;
+    animationState: "entering" | "leaving" | "stable";
+    animationProgress: number;
+    lineNumberOpacity: number;
+    lineNumberAnimationState: "entering" | "leaving" | "stable";
+    lineNumberAnimationProgress: number;
+    typewriterProgress?: number;
+  }> {
+    const renderedLines: Array<{
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+      opacity: number;
+      animationState: "entering" | "leaving" | "stable";
+      animationProgress: number;
+      lineNumberOpacity: number;
+      lineNumberAnimationState: "entering" | "leaving" | "stable";
+      lineNumberAnimationProgress: number;
+      typewriterProgress?: number;
+    }> = [];
+
+    // Create sets for quick lookup
+    const addedLineNumbers = new Set(diff.added.map((line) => line.lineNumber));
+    const removedLineNumbers = new Set(
+      diff.removed.map((line) => line.lineNumber)
+    );
+    const keptLineNumbers = new Set(diff.kept.map((line) => line.lineNumber));
+
+    // For typewriter animation, calculate sequential character visibility
+    let typewriterVisibility: Array<{
+      lineIndex: number;
+      visibleLength: number;
+      isComplete: boolean;
+    }> = [];
+
+    if (animationStyle === "typewriter" && diff.added.length > 0) {
+      const addedLines = diff.added.map((line) => line.content);
+      typewriterVisibility = this.typewriterRenderer.calculateVisibleCharacters(
+        addedLines,
+        progress,
+        globalSpeed || 1.0
+      );
+    }
+
+    // Process each visible line in the scrolling window
+    visibleLines.forEach((line) => {
+      let animationState: "entering" | "leaving" | "stable" = "stable";
+      let codeOpacity = 1;
+      let lineNumberOpacity = 1;
+      let typewriterProgress = progress;
+
+      // Determine animation state based on diff
+      if (addedLineNumbers.has(line.actualLineNumber)) {
+        animationState = "entering";
+        codeOpacity = this.calculateLineOpacity(
+          animationStyle,
+          progress,
+          "entering"
+        );
+        lineNumberOpacity = this.calculateLineNumberOpacity(
+          progress,
+          "entering"
+        );
+
+        // Calculate typewriter progress for this specific line
+        if (animationStyle === "typewriter") {
+          const addedIndex = diff.added.findIndex(
+            (addedLine) => addedLine.lineNumber === line.actualLineNumber
+          );
+          if (addedIndex >= 0 && typewriterVisibility[addedIndex]) {
+            const visibility = typewriterVisibility[addedIndex];
+            typewriterProgress =
+              visibility.visibleLength / Math.max(1, line.content.length);
+          }
+        }
+      } else if (removedLineNumbers.has(line.actualLineNumber)) {
+        animationState = "leaving";
+        codeOpacity = this.calculateLineOpacity(
+          animationStyle,
+          progress,
+          "leaving"
+        );
+        lineNumberOpacity = this.calculateLineNumberOpacity(
+          progress,
+          "leaving"
+        );
+      } else if (keptLineNumbers.has(line.actualLineNumber)) {
+        animationState = "stable";
+        codeOpacity = 1;
+        lineNumberOpacity = 1;
+      }
+
+      // Only add lines that have some opacity (visible)
+      if (codeOpacity > 0 || lineNumberOpacity > 0) {
+        renderedLines.push({
+          displayLineNumber: line.displayLineNumber,
+          actualLineNumber: line.actualLineNumber,
+          content: line.content,
+          opacity: codeOpacity,
+          animationState,
+          animationProgress: progress,
+          lineNumberOpacity,
+          lineNumberAnimationState: animationState,
+          lineNumberAnimationProgress: progress,
+          typewriterProgress,
+        });
+      }
+    });
+
+    // Sort by display line number for proper sequential display
+    return renderedLines.sort(
+      (a, b) => a.displayLineNumber - b.displayLineNumber
+    );
   }
 }
 
