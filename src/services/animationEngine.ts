@@ -354,6 +354,10 @@ export interface AnimationEngineService {
   // New methods for typewriter configuration
   updateTypewriterConfig(config: Partial<TypewriterAnimationConfig>): void;
   getTypewriterConfig(): TypewriterAnimationConfig;
+  // Method to access scrolling renderer
+  getScrollingRenderer(): ScrollingRenderer;
+  // Method to get windowed line ranges for static preview
+  getWindowedLineRanges(slide: Slide, code: string): LineRange[];
 }
 
 export class MotionCanvasAnimationEngine implements AnimationEngineService {
@@ -1020,6 +1024,34 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
    */
   getTypewriterConfig(): TypewriterAnimationConfig {
     return this.typewriterRenderer.getConfig();
+  }
+
+  /**
+   * Get the scrolling renderer instance for external use
+   */
+  getScrollingRenderer(): ScrollingRenderer {
+    return this.scrollingRenderer;
+  }
+
+  /**
+   * Get windowed line ranges for a slide (respects 15-line scrolling window)
+   * This is used for static preview to match animation behavior
+   */
+  getWindowedLineRanges(slide: Slide, code: string): LineRange[] {
+    const allCodeLines = this.getCodeLines(code);
+    const slideLines = this.getSlideLines(slide, code);
+
+    // Use the scrolling renderer to get the windowed lines
+    const scrollingResult = this.scrollingRenderer.renderWithScrolling(
+      slideLines,
+      slideLines.map((line) => line.lineNumber)
+    );
+
+    // Convert to line ranges for the canvas renderer
+    return scrollingResult.visibleLines.map((line) => ({
+      start: line.actualLineNumber,
+      end: line.actualLineNumber,
+    }));
   }
 
   /**
