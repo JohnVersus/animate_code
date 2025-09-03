@@ -396,12 +396,8 @@ class MotionCanvasVideoExportService implements VideoExportService {
       }
     }
 
-    // Return the last step if we're past all steps
-    const lastStep = animationSteps[animationSteps.length - 1];
-    if (lastStep) {
-      return lastStep;
-    }
-
+    // Don't return the last step if we're past all steps - this was causing
+    // the timing issue where slides were extended beyond their duration
     return null;
   }
 
