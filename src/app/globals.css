@@ -167,3 +167,42 @@
 .slider:hover::-moz-range-thumb {
   transform: scale(1.1);
 }
+
+/* Code Editor Styles */
+.code-editor-container {
+  /* Ensure consistent line height across all elements */
+  line-height: 1.5rem;
+}
+
+.code-editor-container pre,
+.code-editor-container textarea,
+.code-editor-container .line-numbers {
+  font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas,
+    "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5rem;
+}
+
+/* Override Prism.js line numbers to prevent conflicts */
+.code-editor-container .line-numbers-rows {
+  display: none !important;
+}
+
+.code-editor-container pre[class*="language-"].line-numbers {
+  padding-left: 0 !important;
+}
+
+.code-editor-container pre[class*="language-"].line-numbers > code {
+  padding-left: 0 !important;
+}
+
+/* Ensure no extra margins or padding from Prism */
+.code-editor-container pre[class*="language-"] {
+  margin: 0 !important;
+  padding: 1rem !important;
+}
+
+/* Fix any potential line height issues from Prism themes */
+.code-editor-container .token {
+  line-height: inherit !important;
+}

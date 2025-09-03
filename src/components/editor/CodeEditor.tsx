@@ -93,6 +93,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         require("prismjs/components/prism-jsx");
         require("prismjs/components/prism-tsx");
 
+        // Disable Prism's line numbers plugin to avoid conflicts
+        if (Prism.plugins && Prism.plugins.lineNumbers) {
+          Prism.plugins.lineNumbers.disable = true;
+        }
+
         setPrismLoaded(true);
       } catch (error) {
         console.warn("Failed to load Prism.js:", error);
@@ -295,18 +300,25 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       </div>
 
       {/* Code Editor */}
-      <div className="relative flex bg-gray-900 text-white font-mono text-sm">
+      <div className="relative flex bg-gray-900 text-white font-mono text-sm code-editor-container">
         {/* Line Numbers */}
-        <div className="flex-shrink-0 p-4 bg-gray-800 border-r border-gray-700 select-none">
+        <div className="flex-shrink-0 py-4 pl-4 pr-2 bg-gray-800 border-r border-gray-700 select-none">
           {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNum) => (
             <div
               key={lineNum}
-              className={`leading-6 text-right pr-2 ${
+              className={`text-right text-xs ${
                 highlightedLines.includes(lineNum)
                   ? "bg-blue-600 text-white"
                   : "text-gray-400"
               }`}
-              style={{ minWidth: "2rem" }}
+              style={{
+                minWidth: "2rem",
+                lineHeight: "1.5rem",
+                height: "1.5rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+              }}
             >
               {lineNum}
             </div>
@@ -321,10 +333,14 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
               {code.split("\n").map((line, index) => (
                 <div
                   key={index}
-                  className={`leading-6 ${
+                  className={`${
                     highlightedLines.includes(index + 1) ? "bg-blue-500/20" : ""
                   }`}
-                  style={{ minHeight: "1.5rem" }}
+                  style={{
+                    lineHeight: "1.5rem",
+                    height: "1.5rem",
+                    minHeight: "1.5rem",
+                  }}
                 >
                   {/* Invisible content to maintain layout */}
                   <span className="invisible">{line || " "}</span>
@@ -336,8 +352,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           {/* Syntax Highlighted Code (Background) */}
           <pre
             ref={preRef}
-            className="absolute inset-0 p-4 overflow-auto whitespace-pre-wrap break-words pointer-events-none z-10"
-            style={{ margin: 0 }}
+            className="absolute inset-0 p-4 overflow-auto whitespace-pre-wrap break-words pointer-events-none z-10 text-xs"
+            style={{
+              margin: 0,
+              lineHeight: "1.5rem",
+            }}
           />
 
           {/* Textarea (Foreground) */}
@@ -347,8 +366,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             onChange={handleInput}
             onScroll={handleScroll}
             placeholder="Paste your code here..."
-            className="absolute inset-0 p-4 w-full h-full bg-transparent text-transparent caret-white resize-none outline-none overflow-auto whitespace-pre-wrap break-words z-20"
-            style={{ margin: 0 }}
+            className="absolute inset-0 p-4 w-full h-full bg-transparent text-transparent caret-white resize-none outline-none overflow-auto whitespace-pre-wrap break-words z-20 text-xs"
+            style={{
+              margin: 0,
+              lineHeight: "1.5rem",
+            }}
             spellCheck={false}
           />
         </div>
