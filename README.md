@@ -84,7 +84,7 @@ pnpm start
 
 - Click "Add Slide" to create a new animation slide
 - Define line ranges (e.g., "1-5" for lines 1 through 5)
-- Use multiple ranges (e.g., "1-3, 8-10") for non-consecutive lines
+- Use multiple ranges (e.g., "1-3, 5, 8-10") for non-consecutive lines
 - Set slide duration and choose animation style
 - Reorder slides by dragging them in the list
 
@@ -126,46 +126,73 @@ console.log("Message:", message);
   {
     "id": "slide-1",
     "name": "Welcome Comment",
-    "lineRanges": [{ "start": 1, "end": 1 }],
+    "lineRanges": [
+      {
+        "start": 1,
+        "end": 1
+      }
+    ],
     "duration": 1000,
-    "animationStyle": "fade",
+    "animationStyle": "typewriter",
     "order": 0
   },
   {
     "id": "slide-2",
     "name": "Function Declaration",
     "lineRanges": [
-      { "start": 1, "end": 2 },
-      { "start": 6, "end": 6 }
+      {
+        "start": 1,
+        "end": 2
+      },
+      {
+        "start": 6,
+        "end": 6
+      }
     ],
-    "duration": 500,
-    "animationStyle": "typewriter",
+    "duration": 1000,
+    "animationStyle": "fade",
     "order": 1
   },
   {
     "id": "slide-3",
     "name": "Create Greeting String",
     "lineRanges": [
-      { "start": 1, "end": 3 },
-      { "start": 6, "end": 6 }
+      {
+        "start": 1,
+        "end": 3
+      },
+      {
+        "start": 6,
+        "end": 6
+      }
     ],
-    "duration": 500,
+    "duration": 600,
     "animationStyle": "slide",
     "order": 2
   },
   {
     "id": "slide-4",
     "name": "Log and Return",
-    "lineRanges": [{ "start": 1, "end": 6 }],
-    "duration": 500,
+    "lineRanges": [
+      {
+        "start": 1,
+        "end": 6
+      }
+    ],
+    "duration": 1000,
     "animationStyle": "highlight",
     "order": 3
   },
   {
     "id": "slide-5",
     "name": "Function Usage",
-    "lineRanges": [{ "start": 1, "end": 10 }],
-    "duration": 100,
+    "lineRanges": [
+      {
+        "start": 1,
+        "end": 10
+      }
+    ],
+    "duration": 2000,
     "animationStyle": "fade",
     "order": 4
   }
@@ -174,7 +201,9 @@ console.log("Message:", message);
 
 ## 🎥 Demo Video
 
-https://github.com/user-attachments/assets/fe950430-3627-4b37-9c49-ade84c9eee71
+https://github.com/user-attachments/assets/2a3cd828-77be-43f8-bc68-cfa689592a14
+
+
 
 ## 🏗️ Architecture
 
