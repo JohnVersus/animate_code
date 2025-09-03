@@ -158,13 +158,13 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
           <img
             src={videoUrl}
             alt="Generated GIF"
-            className="w-full h-auto max-h-96 mx-auto"
+            className="w-full h-auto max-h-[48rem] mx-auto"
           />
         ) : (
           <video
             ref={videoRef}
             src={videoUrl}
-            className="w-full h-auto max-h-96"
+            className="w-full h-auto max-h-[48rem]"
             preload="metadata"
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}

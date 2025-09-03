@@ -113,7 +113,13 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className={`${
+          exportedVideo
+            ? "sm:max-w-4xl max-h-[90vh] overflow-y-auto"
+            : "sm:max-w-md"
+        }`}
+      >
         <DialogHeader>
           <DialogTitle>Export Video</DialogTitle>
         </DialogHeader>
