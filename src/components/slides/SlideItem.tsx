@@ -10,6 +10,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { SlideEditor } from "./SlideEditor";
+import {
+  Edit,
+  Copy,
+  Trash2,
+  Zap,
+  ArrowRight,
+  Type,
+  Highlighter,
+} from "lucide-react";
 
 interface SlideItemProps {
   slide: Slide;
@@ -79,15 +88,15 @@ export function SlideItem({
   const getAnimationStyleIcon = (style: string) => {
     switch (style) {
       case "fade":
-        return "⚡";
+        return <Zap className="w-3 h-3" />;
       case "slide":
-        return "➡️";
+        return <ArrowRight className="w-3 h-3" />;
       case "typewriter":
-        return "⌨️";
+        return <Type className="w-3 h-3" />;
       case "highlight":
-        return "🔆";
+        return <Highlighter className="w-3 h-3" />;
       default:
-        return "⚡";
+        return <Zap className="w-3 h-3" />;
     }
   };
 
@@ -135,7 +144,10 @@ export function SlideItem({
             <span className="text-xs font-medium text-gray-500">
               #{index + 1}
             </span>
-            <h3 className="text-sm font-medium text-gray-900 truncate">
+            <h3
+              className="text-sm font-medium text-gray-900 truncate group-hover:max-w-[50px]"
+              title={slide.name}
+            >
               {slide.name}
             </h3>
           </div>
@@ -156,7 +168,7 @@ export function SlideItem({
                   className="h-6 w-6 text-gray-400 hover:text-gray-600"
                   title="Edit slide"
                 >
-                  ✏️
+                  <Edit className="w-3 h-3" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80" align="end">
@@ -178,7 +190,7 @@ export function SlideItem({
               className="h-6 w-6 text-gray-400 hover:text-gray-600"
               title="Duplicate slide"
             >
-              📋
+              <Copy className="w-3 h-3" />
             </Button>
             <Button
               variant="ghost"
@@ -192,7 +204,7 @@ export function SlideItem({
               className="h-6 w-6 text-gray-400 hover:text-red-600"
               title="Delete slide"
             >
-              🗑️
+              <Trash2 className="w-3 h-3" />
             </Button>
           </div>
         </div>
@@ -209,7 +221,7 @@ export function SlideItem({
         <div className="flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center space-x-2">
             <span className="flex items-center space-x-1">
-              <span>{getAnimationStyleIcon(slide.animationStyle)}</span>
+              {getAnimationStyleIcon(slide.animationStyle)}
               <span className="capitalize">{slide.animationStyle}</span>
             </span>
             <span>•</span>

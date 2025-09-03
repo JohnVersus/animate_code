@@ -251,8 +251,8 @@ export function SlideManager({
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
         {editingMode === "visual" ? (
-          /* Visual Mode - Slide List - Horizontal Layout */
-          <div className="h-full overflow-x-auto overflow-y-hidden slide-container">
+          /* Visual Mode - Slide List - Grid Layout */
+          <div className="h-full overflow-y-auto overflow-x-hidden">
             {slides.length === 0 ? (
               <div className="p-4 text-center text-gray-500 h-full flex items-center justify-center">
                 <div>
@@ -263,10 +263,10 @@ export function SlideManager({
                 </div>
               </div>
             ) : (
-              <div className="p-2 h-full">
-                <div className="flex space-x-3 h-full min-w-max">
+              <div className="p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {slides.map((slide, index) => (
-                    <div key={slide.id} className="flex-shrink-0 w-64">
+                    <div key={slide.id} className="w-full">
                       <SlideItem
                         slide={slide}
                         index={index}
