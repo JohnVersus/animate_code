@@ -23,7 +23,12 @@ console.log("Message:", message);`;
     {
       id: "slide-1",
       name: "Welcome Comment",
-      lineRanges: [{ start: 1, end: 1 }],
+      lineRanges: [
+        {
+          start: 1,
+          end: 1,
+        },
+      ],
       duration: 1000,
       animationStyle: "fade",
       order: 0,
@@ -31,7 +36,16 @@ console.log("Message:", message);`;
     {
       id: "slide-2",
       name: "Function Declaration",
-      lineRanges: [{ start: 1, end: 2 }],
+      lineRanges: [
+        {
+          start: 1,
+          end: 2,
+        },
+        {
+          start: 6,
+          end: 6,
+        },
+      ],
       duration: 500,
       animationStyle: "typewriter",
       order: 1,
@@ -39,7 +53,16 @@ console.log("Message:", message);`;
     {
       id: "slide-3",
       name: "Create Greeting String",
-      lineRanges: [{ start: 1, end: 3 }],
+      lineRanges: [
+        {
+          start: 1,
+          end: 3,
+        },
+        {
+          start: 6,
+          end: 6,
+        },
+      ],
       duration: 500,
       animationStyle: "slide",
       order: 2,
@@ -47,7 +70,12 @@ console.log("Message:", message);`;
     {
       id: "slide-4",
       name: "Log and Return",
-      lineRanges: [{ start: 1, end: 6 }],
+      lineRanges: [
+        {
+          start: 1,
+          end: 6,
+        },
+      ],
       duration: 500,
       animationStyle: "highlight",
       order: 3,
@@ -55,7 +83,12 @@ console.log("Message:", message);`;
     {
       id: "slide-5",
       name: "Function Usage",
-      lineRanges: [{ start: 1, end: 10 }],
+      lineRanges: [
+        {
+          start: 1,
+          end: 10,
+        },
+      ],
       duration: 100,
       animationStyle: "fade",
       order: 4,
@@ -63,7 +96,7 @@ console.log("Message:", message);`;
   ];
 
   return {
-    name: "Hello World Example - Welcome to Code Animator",
+    name: "Hello World Example",
     code: exampleCode,
     language: "javascript",
     slides: exampleSlides,
@@ -89,5 +122,4 @@ export const isFirstTimeUser = (projects: Project[]): boolean => {
 /**
  * Get the default project name for identification
  */
-export const DEFAULT_PROJECT_NAME =
-  "Hello World Example - Welcome to Code Animator";
+export const DEFAULT_PROJECT_NAME = "Hello World Example";

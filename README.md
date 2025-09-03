@@ -134,7 +134,10 @@ console.log("Message:", message);
   {
     "id": "slide-2",
     "name": "Function Declaration",
-    "lineRanges": [{ "start": 1, "end": 2 }],
+    "lineRanges": [
+      { "start": 1, "end": 2 },
+      { "start": 6, "end": 6 }
+    ],
     "duration": 500,
     "animationStyle": "typewriter",
     "order": 1
@@ -142,7 +145,10 @@ console.log("Message:", message);
   {
     "id": "slide-3",
     "name": "Create Greeting String",
-    "lineRanges": [{ "start": 1, "end": 3 }],
+    "lineRanges": [
+      { "start": 1, "end": 3 },
+      { "start": 6, "end": 6 }
+    ],
     "duration": 500,
     "animationStyle": "slide",
     "order": 2
@@ -159,7 +165,7 @@ console.log("Message:", message);
     "id": "slide-5",
     "name": "Function Usage",
     "lineRanges": [{ "start": 1, "end": 10 }],
-    "duration": 1000,
+    "duration": 100,
     "animationStyle": "fade",
     "order": 4
   }
@@ -168,10 +174,7 @@ console.log("Message:", message);
 
 ## 🎥 Demo Video
 
-
-
 https://github.com/user-attachments/assets/fe950430-3627-4b37-9c49-ade84c9eee71
-
 
 ## 🏗️ Architecture
 
@@ -231,11 +234,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 This project was built with the help of amazing tools and communities:
 
-- **[Kiro](https://kiro.ai)** - The AI-powered development environment that helped architect and build this application
+- **[Kiro](https://kiro.dev)** - The AI-powered development environment that helped architect and build this application
 - **[Motion Canvas](https://motioncanvas.io)** - The powerful animation library that makes smooth code animations possible
-
-
-Special thanks to the open-source community for making tools like this possible!
 
 ---
 
