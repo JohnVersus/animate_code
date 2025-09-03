@@ -6,6 +6,15 @@ import { animationEngine } from "../../services/animationEngine";
 import { prismThemeExtractor } from "../../services/prismThemeExtractor";
 import { Slide } from "../../types";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { PauseIcon, PlayIcon } from "lucide-react";
 
 interface AnimationPreviewProps {
   code: string;
@@ -343,25 +352,52 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
   return (
     <div className="h-full bg-gray-900 relative overflow-auto">
       <style jsx>{`
+        .slider {
+          background: transparent;
+        }
+
         .slider::-webkit-slider-thumb {
           appearance: none;
-          height: 16px;
-          width: 16px;
+          height: 18px;
+          width: 18px;
           border-radius: 50%;
           background: #3b82f6;
           cursor: pointer;
-          border: 2px solid #ffffff;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          border: 3px solid #ffffff;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+          transition: all 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+          background: #2563eb;
+          transform: scale(1.1);
         }
 
         .slider::-moz-range-thumb {
-          height: 16px;
-          width: 16px;
+          height: 18px;
+          width: 18px;
           border-radius: 50%;
           background: #3b82f6;
           cursor: pointer;
-          border: 2px solid #ffffff;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          border: 3px solid #ffffff;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+          transition: all 0.2s ease;
+        }
+
+        .slider::-moz-range-thumb:hover {
+          background: #2563eb;
+          transform: scale(1.1);
+        }
+
+        .slider::-webkit-slider-track {
+          height: 8px;
+          border-radius: 4px;
+        }
+
+        .slider::-moz-range-track {
+          height: 8px;
+          border-radius: 4px;
+          border: none;
         }
       `}</style>
       {/* Static Canvas Preview */}
@@ -402,224 +438,191 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
       )}
 
       {/* Controls overlay */}
-      <div className="absolute bottom-2 left-4 right-4 bg-orange-500/30 bg-opacity-75 rounded-lg p-3">
-        {/* Timeline scrubber */}
-        {slides.length > 0 && (
-          <div className="mb-3">
-            <div className="flex items-center justify-between text-xs text-gray-300 mb-1">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(totalDuration)}</span>
-            </div>
-            <div className="relative">
-              <input
-                type="range"
-                min="0"
-                max={totalDuration}
-                step="0.1"
-                value={currentTime}
-                onChange={(e) => handleTimelineSeek(parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
-                style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
-                    totalProgress * 100
-                  }%, #4b5563 ${totalProgress * 100}%, #4b5563 100%)`,
-                }}
-              />
-              {/* Slide markers on timeline */}
-              <div className="absolute top-0 left-0 right-0 h-2 pointer-events-none">
-                {slides.map((_, index) => {
-                  let accumulatedTime = 0;
-                  for (let i = 0; i < index; i++) {
-                    accumulatedTime += slides[i].duration / globalSpeed / 1000; // Convert ms to seconds and apply global speed
-                  }
-                  const position =
-                    totalDuration > 0
-                      ? (accumulatedTime / totalDuration) * 100
-                      : 0;
-                  return (
-                    <div
-                      key={index}
-                      className="absolute w-0.5 h-2 bg-yellow-400"
-                      style={{ left: `${position}%` }}
-                    />
-                  );
-                })}
+      <div className="absolute bottom-2 left-4 right-4">
+        <div className="bg-black/80 backdrop-blur-sm rounded-lg border border-gray-700 p-3 shadow-xl">
+          {/* Timeline scrubber */}
+          {slides.length > 0 && (
+            <div className="mb-3">
+              <div className="flex items-center justify-between text-[10px] text-gray-300 mb-1.5">
+                <span className="font-mono">{formatTime(currentTime)}</span>
+                <span className="font-mono">{formatTime(totalDuration)}</span>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Main controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            {/* Play/Pause button */}
-            <Button
-              onClick={() => onPlayStateChange(!isPlaying)}
-              className="w-10 h-10 rounded-full"
-              disabled={slides.length === 0}
-            >
-              {isPlaying ? (
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="w-4 h-4 ml-0.5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
-            </Button>
-
-            {/* Reset button */}
-            {slides.length > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={resetAnimation}
-                className="w-8 h-8 text-gray-300 hover:text-white"
-                title="Reset to beginning"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </Button>
-            )}
-
-            {/* Manual slide navigation */}
-            {slides.length > 0 && (
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => goToSlide(currentSlide - 1)}
-                  disabled={currentSlide === 0}
-                  className="text-white hover:text-blue-400 disabled:text-gray-500 disabled:cursor-not-allowed h-auto w-auto p-1"
-                  title="Previous slide"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </Button>
-
-                <div className="text-white text-sm font-medium px-2">
-                  {currentSlide + 1} / {slides.length}
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => goToSlide(currentSlide + 1)}
-                  disabled={currentSlide === slides.length - 1}
-                  className="text-white hover:text-blue-400 disabled:text-gray-500 disabled:cursor-not-allowed h-auto w-auto p-1"
-                  title="Next slide"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </Button>
-              </div>
-            )}
-
-            {/* Global speed control */}
-            {onGlobalSpeedChange && (
-              <div className="flex items-center space-x-2 text-gray-300 text-sm">
-                <span>Speed:</span>
-                <select
-                  value={globalSpeed}
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max={totalDuration}
+                  step="0.1"
+                  value={currentTime}
                   onChange={(e) =>
-                    onGlobalSpeedChange(parseFloat(e.target.value))
+                    handleTimelineSeek(parseFloat(e.target.value))
                   }
-                  className="bg-gray-700 text-white text-xs px-2 py-1 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                  style={{
+                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                      totalProgress * 100
+                    }%, #374151 ${totalProgress * 100}%, #374151 100%)`,
+                  }}
+                />
+                {/* Slide markers on timeline */}
+                <div className="absolute top-0 left-0 right-0 h-2 pointer-events-none">
+                  {slides.map((_, index) => {
+                    let accumulatedTime = 0;
+                    for (let i = 0; i < index; i++) {
+                      accumulatedTime +=
+                        slides[i].duration / globalSpeed / 1000;
+                    }
+                    const position =
+                      totalDuration > 0
+                        ? (accumulatedTime / totalDuration) * 100
+                        : 0;
+                    return (
+                      <div
+                        key={index}
+                        className="absolute w-0.5 h-2 bg-yellow-400 rounded-full"
+                        style={{ left: `${position}%` }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main controls */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              {/* Play/Pause button */}
+              <Button
+                onClick={() => onPlayStateChange(!isPlaying)}
+                size="icon"
+                className="h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700"
+                disabled={slides.length === 0}
+              >
+                {isPlaying ? <PauseIcon /> : <PlayIcon />}
+              </Button>
+
+              {/* Reset button */}
+              {slides.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={resetAnimation}
+                  className="h-8 w-8 text-gray-300 hover:text-white hover:bg-gray-700"
+                  title="Reset to beginning"
                 >
-                  <option value={0.25}>0.25x</option>
-                  <option value={0.5}>0.5x</option>
-                  <option value={0.75}>0.75x</option>
-                  <option value={1.0}>1x</option>
-                  <option value={1.25}>1.25x</option>
-                  <option value={1.5}>1.5x</option>
-                  <option value={2.0}>2x</option>
-                </select>
-              </div>
-            )}
+                  <svg
+                    className="w-4 h-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </Button>
+              )}
 
-            {/* Current slide info */}
-            {slides.length > 0 && slides[currentSlide] && (
-              <div className="text-gray-300 text-sm">
-                <span className="font-medium">{slides[currentSlide].name}</span>
-                <span className="ml-2 text-xs">
-                  (
-                  {formatTime(
-                    slides[currentSlide].duration / globalSpeed / 1000
-                  )}
-                  s, {slides[currentSlide].animationStyle})
-                </span>
-              </div>
-            )}
+              {/* Manual slide navigation */}
+              {slides.length > 0 && (
+                <div className="flex items-center space-x-1 bg-gray-800 rounded-md p-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => goToSlide(currentSlide - 1)}
+                    disabled={currentSlide === 0}
+                    className="h-6 w-6 text-gray-300 hover:text-white hover:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    title="Previous slide"
+                  >
+                    <svg
+                      className="w-3 h-3"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </Button>
 
-            {slides.length === 0 && (
-              <div className="text-gray-400 text-sm">
-                Add slides to enable animation
-              </div>
-            )}
-          </div>
+                  <div className="text-white text-sm font-mono px-2 min-w-[3rem] text-center">
+                    {currentSlide + 1}/{slides.length}
+                  </div>
 
-          {/* Right side info */}
-          <div className="flex items-center space-x-4">
-            {/* Progress indicator */}
-            {/* {slides.length > 0 && (
-              <div className="text-xs text-gray-300">
-                <div>Slide: {Math.round(animationProgress * 100)}%</div>
-                <div>Total: {Math.round(totalProgress * 100)}%</div>
-              </div>
-            )} */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => goToSlide(currentSlide + 1)}
+                    disabled={currentSlide === slides.length - 1}
+                    className="h-6 w-6 text-gray-300 hover:text-white hover:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    title="Next slide"
+                  >
+                    <svg
+                      className="w-3 h-3"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </Button>
+                </div>
+              )}
 
-            {/* Language indicator */}
-            <div className="text-white text-sm font-medium">
-              {language.charAt(0).toUpperCase() + language.slice(1)}
+              {/* Global speed control */}
+              {onGlobalSpeedChange && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-300 text-sm">Speed:</span>
+                  <Select
+                    value={globalSpeed.toString()}
+                    onValueChange={(value) =>
+                      onGlobalSpeedChange(parseFloat(value))
+                    }
+                  >
+                    <SelectTrigger
+                      size="sm"
+                      className="w-25 bg-gray-800 border-gray-600 text-white"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0.25">0.25x</SelectItem>
+                      <SelectItem value="0.5">0.5x</SelectItem>
+                      <SelectItem value="0.75">0.75x</SelectItem>
+                      <SelectItem value="1">1x</SelectItem>
+                      <SelectItem value="1.25">1.25x</SelectItem>
+                      <SelectItem value="1.5">1.5x</SelectItem>
+                      <SelectItem value="2">2x</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {slides.length === 0 && (
+                <div className="text-gray-400 text-sm">
+                  Add slides to enable animation
+                </div>
+              )}
             </div>
 
-            {/* Preview mode indicator */}
-            <div className="text-xs text-gray-300">
-              {previewMode === "static" ? "Static" : "Animated"}
+            {/* Right side info */}
+            <div className="flex items-center space-x-3">
+              {/* Language indicator */}
+              <div className="bg-gray-800 px-2 py-1 rounded text-white text-sm font-medium">
+                {language.charAt(0).toUpperCase() + language.slice(1)}
+              </div>
+
+              {/* Preview mode indicator */}
+              <div className="text-xs text-gray-400 font-mono">
+                {previewMode === "static" ? "Static" : "Animated"}
+              </div>
             </div>
           </div>
         </div>
