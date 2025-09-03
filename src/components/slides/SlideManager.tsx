@@ -88,7 +88,7 @@ export function SlideManager({
       const newSlide: Slide = {
         ...slideToClone,
         id: crypto.randomUUID(),
-        name: `${slideToClone.name} (Copy)`,
+        name: `${slideToClone.name} C`,
         order: slides.length,
       };
 
@@ -252,7 +252,7 @@ export function SlideManager({
       <div className="flex-1 overflow-hidden">
         {editingMode === "visual" ? (
           /* Visual Mode - Slide List - Grid Layout */
-          <div className="h-full overflow-y-auto overflow-x-hidden">
+          <div className="h-[40vh] overflow-y-auto overflow-x-hidden">
             {slides.length === 0 ? (
               <div className="p-4 text-center text-gray-500 h-full flex items-center justify-center">
                 <div>
