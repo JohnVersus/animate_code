@@ -507,7 +507,7 @@ function example() {
                       />
                     </div>
                   ) : (
-                    <CardTitle className="text-sm font-medium text-gray-900 truncate flex-1">
+                    <CardTitle className="text-sm font-medium text-gray-900 truncate flex-1 max-w-52">
                       {project.name}
                     </CardTitle>
                   )}
