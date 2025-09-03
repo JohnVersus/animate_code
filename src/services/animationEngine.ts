@@ -196,13 +196,14 @@ export class ScrollingRenderer {
     );
     const window = this.scrollingWindow.getCurrentWindow();
 
-    // Filter lines that are within the visible window and use sequential numbering for display
+    // Filter lines that are within the visible window
     const filteredLines = allLines
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
+    // Always use sequential numbering for display (1, 2, 3...) regardless of actual line numbers
     const visibleLines = filteredLines.map((line, index) => ({
-      displayLineNumber: index + 1, // Use sequential numbering (1, 2, 3...)
+      displayLineNumber: index + 1,
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));
@@ -263,13 +264,14 @@ export class ScrollingRenderer {
     );
     const window = this.scrollingWindow.getCurrentWindow();
 
-    // Filter lines that are within the visible window and use sequential numbering for display
+    // Filter lines that are within the visible window
     const filteredLines = uniqueSlideLines
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
+    // Always use sequential numbering for display (1, 2, 3...) regardless of actual line numbers
     const visibleLines = filteredLines.map((line, index) => ({
-      displayLineNumber: index + 1, // Use sequential numbering (1, 2, 3...)
+      displayLineNumber: index + 1,
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));

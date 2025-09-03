@@ -350,6 +350,30 @@ export class ScrollingWindowManager implements ScrollingWindow {
 
     const previousWindow = { ...this.currentWindow };
 
+    // If we have fewer target lines than maxLines, don't apply scrolling window logic
+    // Just show all the target lines as-is
+    if (targetLines.length <= this.maxLines) {
+      // Sort target lines and use them directly as visible lines
+      const sortedTargetLines = [...targetLines].sort((a, b) => a - b);
+
+      // Set window to encompass all target lines
+      const minTargetLine = Math.min(...targetLines);
+      const maxTargetLine = Math.max(...targetLines);
+
+      this.currentWindow = { startLine: minTargetLine, endLine: maxTargetLine };
+
+      return {
+        visibleLines: sortedTargetLines,
+        scrollAnimation: {
+          type: "none",
+          duration: 0,
+          fromWindow: previousWindow,
+          toWindow: this.currentWindow,
+        },
+      };
+    }
+
+    // Original logic for cases where we have more lines than can fit
     // Find optimal window to show target lines
     const minTargetLine = Math.min(...targetLines);
     const maxTargetLine = Math.max(...targetLines);
