@@ -14,7 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Code, Trash2, Calendar, Settings } from "lucide-react";
+import {
+  Plus,
+  Code,
+  Trash2,
+  Calendar,
+  Settings,
+  Copy,
+  Edit3,
+  Search,
+} from "lucide-react";
 import { clearDatabase } from "@/utils/dbUtils";
 
 interface CodeManagerProps {
@@ -40,6 +49,9 @@ export function CodeManager({
   const [isCreating, setIsCreating] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [showDebugOptions, setShowDebugOptions] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   // Use ref to access current projects without causing re-renders
   const projectsRef = useRef<Project[]>([]);
@@ -237,6 +249,66 @@ function example() {
     }).format(new Date(date));
   };
 
+  const duplicateProject = async (
+    project: Project,
+    event: React.MouseEvent
+  ) => {
+    event.stopPropagation();
+
+    try {
+      const duplicatedProject = {
+        name: `${project.name} (Copy)`,
+        code: project.code,
+        language: project.language,
+        slides: project.slides.map((slide) => ({
+          ...slide,
+          id: `${slide.id}-copy-${Date.now()}`,
+        })),
+        settings: { ...project.settings },
+      };
+
+      await storageService.saveProject(duplicatedProject);
+      await loadProjects();
+    } catch (error) {
+      console.error("Failed to duplicate project:", error);
+    }
+  };
+
+  const startRenaming = (project: Project, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEditingProjectId(project.id);
+    setEditingName(project.name);
+  };
+
+  const saveRename = async (projectId: string) => {
+    if (!editingName.trim()) return;
+
+    try {
+      const project = projects.find((p) => p.id === projectId);
+      if (project) {
+        const updatedProject = { ...project, name: editingName.trim() };
+        await storageService.updateProject(updatedProject);
+        await loadProjects();
+      }
+    } catch (error) {
+      console.error("Failed to rename project:", error);
+    } finally {
+      setEditingProjectId(null);
+      setEditingName("");
+    }
+  };
+
+  const cancelRename = () => {
+    setEditingProjectId(null);
+    setEditingName("");
+  };
+
+  const filteredProjects = projects.filter(
+    (project) =>
+      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.language.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const handleClearDatabase = async () => {
     if (!confirm("This will delete ALL projects permanently. Are you sure?")) {
       return;
@@ -317,8 +389,8 @@ function example() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header with Create Button */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
+      {/* Header with Search and Create Button */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">Code Projects</h2>
           <Dialog
@@ -370,20 +442,41 @@ function example() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="Search projects..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-white"
+          />
+        </div>
       </div>
 
       {/* Projects List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {projects.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Code className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="text-sm">No projects yet</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Create your first project to get started
-            </p>
-          </div>
+        {filteredProjects.length === 0 ? (
+          projects.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Code className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-sm">No projects yet</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Create your first project to get started
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-sm">No projects found</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Try adjusting your search terms
+              </p>
+            </div>
+          )
         ) : (
-          projects.map((project) => (
+          filteredProjects.map((project) => (
             <Card
               key={project.id}
               className={`cursor-pointer transition-all hover:shadow-md ${
@@ -395,17 +488,59 @@ function example() {
             >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-sm font-medium text-gray-900 truncate">
-                    {project.name}
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
-                    onClick={(e) => deleteProject(project.id, e)}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                  {editingProjectId === project.id ? (
+                    <div className="flex-1 mr-2">
+                      <Input
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        className="text-sm h-7"
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                          if (e.key === "Enter") {
+                            saveRename(project.id);
+                          } else if (e.key === "Escape") {
+                            cancelRename();
+                          }
+                        }}
+                        onBlur={() => saveRename(project.id)}
+                        autoFocus
+                      />
+                    </div>
+                  ) : (
+                    <CardTitle className="text-sm font-medium text-gray-900 truncate flex-1">
+                      {project.name}
+                    </CardTitle>
+                  )}
+
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-blue-600"
+                      onClick={(e) => duplicateProject(project, e)}
+                      title="Duplicate project"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-green-600"
+                      onClick={(e) => startRenaming(project, e)}
+                      title="Rename project"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
+                      onClick={(e) => deleteProject(project.id, e)}
+                      title="Delete project"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
