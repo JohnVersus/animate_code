@@ -196,15 +196,16 @@ export class ScrollingRenderer {
     );
     const window = this.scrollingWindow.getCurrentWindow();
 
-    // Filter lines that are within the visible window and use actual line numbers for display
-    const visibleLines = allLines
+    // Filter lines that are within the visible window and use sequential numbering for display
+    const filteredLines = allLines
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
-      .map((line) => ({
-        displayLineNumber: line.lineNumber, // Use actual line number, not sequential
-        actualLineNumber: line.lineNumber,
-        content: line.content,
-      }))
-      .sort((a, b) => a.actualLineNumber - b.actualLineNumber);
+      .sort((a, b) => a.lineNumber - b.lineNumber);
+
+    const visibleLines = filteredLines.map((line, index) => ({
+      displayLineNumber: index + 1, // Use sequential numbering (1, 2, 3...)
+      actualLineNumber: line.lineNumber,
+      content: line.content,
+    }));
 
     return {
       visibleLines,
@@ -262,15 +263,16 @@ export class ScrollingRenderer {
     );
     const window = this.scrollingWindow.getCurrentWindow();
 
-    // Filter lines that are within the visible window and use actual line numbers for display
-    const visibleLines = uniqueSlideLines
+    // Filter lines that are within the visible window and use sequential numbering for display
+    const filteredLines = uniqueSlideLines
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
-      .map((line) => ({
-        displayLineNumber: line.lineNumber, // Use actual line number, not sequential
-        actualLineNumber: line.lineNumber,
-        content: line.content,
-      }))
-      .sort((a, b) => a.actualLineNumber - b.actualLineNumber);
+      .sort((a, b) => a.lineNumber - b.lineNumber);
+
+    const visibleLines = filteredLines.map((line, index) => ({
+      displayLineNumber: index + 1, // Use sequential numbering (1, 2, 3...)
+      actualLineNumber: line.lineNumber,
+      content: line.content,
+    }));
 
     return {
       visibleLines,
@@ -549,7 +551,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
 
   /**
    * Get slide lines with sequential numbering for display
-   * For video export, we want to show actual line numbers, not sequential
+   * This ensures line numbers are shown as 1, 2, 3... instead of actual line numbers
    */
   getSlideLinesSequential(
     slide: Slide,
@@ -560,9 +562,9 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     content: string;
   }[] {
     const visibleLines = this.getVisibleLines(code, slide.lineRanges);
-    // For video export, use actual line numbers instead of sequential
-    return visibleLines.map((line) => ({
-      displayLineNumber: line.lineNumber, // Use actual line number
+    // Use sequential numbering (1, 2, 3...) for display
+    return visibleLines.map((line, index) => ({
+      displayLineNumber: index + 1, // Sequential numbering
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));
@@ -672,7 +674,7 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
 
   /**
    * Get visible lines with sequential numbering for display
-   * For video export, we want to show actual line numbers, not sequential
+   * This ensures line numbers are shown as 1, 2, 3... instead of actual line numbers
    */
   getVisibleLinesSequential(
     code: string,
@@ -683,9 +685,9 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     content: string;
   }[] {
     const visibleLines = this.getVisibleLines(code, lineRanges);
-    // For video export, use actual line numbers instead of sequential
-    return visibleLines.map((line) => ({
-      displayLineNumber: line.lineNumber, // Use actual line number
+    // Use sequential numbering (1, 2, 3...) for display
+    return visibleLines.map((line, index) => ({
+      displayLineNumber: index + 1, // Sequential numbering
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));
