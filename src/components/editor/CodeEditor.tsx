@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import hljs from "highlight.js";
+import "highlight.js/styles/atom-one-dark.css";
 
 interface CodeEditorProps {
   code: string;
@@ -101,15 +102,18 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, [code, language, onLanguageChange, isManuallySelected, previousCode]);
 
-  // Highlight code using highlight.js
+  // FIX 2: Refactor highlighting logic for efficiency and clarity.
+  // This approach generates the highlighted HTML and sets it in one operation.
   useEffect(() => {
     if (preRef.current) {
       if (code) {
-        preRef.current.textContent = code;
-        // The `language-${language}` class is now set on the <pre> tag in JSX
-        hljs.highlightElement(preRef.current);
+        const highlightedCode = hljs.highlight(code, {
+          language,
+          ignoreIllegals: true, // Prevents errors on invalid syntax
+        }).value;
+        preRef.current.innerHTML = highlightedCode;
       } else {
-        preRef.current.textContent = "";
+        preRef.current.textContent = ""; // Clear the display if there's no code
       }
     }
   }, [code, language]);
@@ -224,7 +228,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           {/* Syntax Highlighted Code (Background) */}
           <pre
             ref={preRef}
-            className={`language-${language} absolute inset-0 p-4 overflow-auto whitespace-pre-wrap break-words pointer-events-none z-10 text-xs`}
+            // FIX 3: Removed `language-${language}` class as it's no longer needed with the new useEffect.
+            className="absolute inset-0 p-4 overflow-auto whitespace-pre-wrap break-words pointer-events-none z-10 text-xs"
             style={{
               margin: 0,
               lineHeight: "1.5rem",
