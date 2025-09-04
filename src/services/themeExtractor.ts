@@ -1,7 +1,7 @@
 /**
- * Prism Theme Extraction Service
+ * Theme Extraction Service
  *
- * This service extracts color information from the loaded Prism.js CSS theme
+ * This service extracts color information from the loaded highlight.js CSS theme
  * to ensure consistent syntax highlighting between the code editor and canvas renderer.
  */
 
@@ -34,7 +34,7 @@ export interface ThemeColorScheme {
   };
 }
 
-export interface PrismThemeExtractor {
+export interface ThemeExtractor {
   extractThemeColors(): ThemeColorScheme;
   getBackgroundColor(): string;
   getTextColor(): string;
@@ -43,109 +43,84 @@ export interface PrismThemeExtractor {
 }
 
 /**
- * Implementation of PrismThemeExtractor that extracts colors from loaded Prism.js CSS
+ * Implementation of ThemeExtractor that extracts colors from loaded highlight.js CSS
  */
-export class DOMPrismThemeExtractor implements PrismThemeExtractor {
+export class HighlightJsThemeExtractor implements ThemeExtractor {
   private cachedTheme: ThemeColorScheme | null = null;
-  private readonly cacheKey = "prism-theme-cache";
+  private readonly cacheKey = "hljs-theme-cache";
   private readonly fallbackTheme: ThemeColorScheme;
 
   constructor() {
-    // Fallback theme matching the CodeEditor's bg-gray-900 appearance
+    // Fallback theme matching atom-one-dark.css
     this.fallbackTheme = {
-      background: "#111827", // Tailwind's gray-900
-      text: "#d1d5db", // Tailwind's gray-300
-      lineNumber: "#6b7280", // Tailwind's gray-500
+      background: "#282c34",
+      text: "#abb2bf",
+      lineNumber: "#5c6370",
       tokens: {
-        comment: "#999",
-        keyword: "#cc99cd",
-        string: "#7ec699",
-        number: "#f08d49",
-        operator: "#67cdcc",
-        punctuation: "#ccc",
-        function: "#f08d49",
-        "class-name": "#f8c555",
-        variable: "#7ec699",
-        property: "#f8c555",
-        tag: "#e2777a",
-        "attr-name": "#e2777a",
-        "attr-value": "#7ec699",
-        regex: "#7ec699",
-        important: "#cc99cd",
-        bold: "#ccc",
-        italic: "#ccc",
-        plain: "#ccc",
+        comment: "#5c6370",
+        keyword: "#c678dd",
+        string: "#98c379",
+        number: "#d19a66",
+        operator: "#56b6c2", // hue-1 for operators
+        punctuation: "#abb2bf", // Default text color
+        function: "#61aeee",
+        "class-name": "#e6c07b",
+        variable: "#e06c75", // hue-5 for variables
+        property: "#d19a66",
+        tag: "#e06c75",
+        "attr-name": "#d19a66",
+        "attr-value": "#98c379",
+        regex: "#98c379",
+        important: "#c678dd",
+        bold: "#abb2bf", // Default text, but bold
+        italic: "#abb2bf", // Default text, but italic
+        plain: "#abb2bf",
       },
     };
   }
 
-  /**
-   * Extract theme colors from loaded Prism.js CSS
-   */
   extractThemeColors(): ThemeColorScheme {
-    // Return cached theme if available
     if (this.cachedTheme) {
       return this.cachedTheme;
     }
 
-    // Check if we're in a browser environment
     if (typeof window === "undefined" || typeof document === "undefined") {
       console.warn(
-        "PrismThemeExtractor: Not in browser environment, using fallback theme"
+        "ThemeExtractor: Not in browser environment, using fallback theme"
       );
       return this.fallbackTheme;
     }
 
     try {
       const extractedTheme = this.extractFromDOM();
-
-      // Cache the extracted theme
       this.cachedTheme = extractedTheme;
-
-      // Store in sessionStorage for performance (optional)
       try {
         sessionStorage.setItem(this.cacheKey, JSON.stringify(extractedTheme));
       } catch (e) {
         // Ignore storage errors
       }
-
       return extractedTheme;
     } catch (error) {
       console.warn(
-        "PrismThemeExtractor: Failed to extract theme from DOM, using fallback:",
+        "ThemeExtractor: Failed to extract theme from DOM, using fallback:",
         error
       );
       return this.fallbackTheme;
     }
   }
 
-  /**
-   * Get background color from theme
-   */
   getBackgroundColor(): string {
-    const theme = this.extractThemeColors();
-    return theme.background;
+    return this.extractThemeColors().background;
   }
 
-  /**
-   * Get text color from theme
-   */
   getTextColor(): string {
-    const theme = this.extractThemeColors();
-    return theme.text;
+    return this.extractThemeColors().text;
   }
 
-  /**
-   * Get line number color from theme
-   */
   getLineNumberColor(): string {
-    const theme = this.extractThemeColors();
-    return theme.lineNumber;
+    return this.extractThemeColors().lineNumber;
   }
 
-  /**
-   * Clear cached theme data
-   */
   clearCache(): void {
     this.cachedTheme = null;
     try {
@@ -155,11 +130,7 @@ export class DOMPrismThemeExtractor implements PrismThemeExtractor {
     }
   }
 
-  /**
-   * Extract colors from DOM by creating temporary elements with Prism classes
-   */
   private extractFromDOM(): ThemeColorScheme {
-    // Create a temporary container
     const container = document.createElement("div");
     container.style.position = "absolute";
     container.style.left = "-9999px";
@@ -167,13 +138,9 @@ export class DOMPrismThemeExtractor implements PrismThemeExtractor {
     container.style.visibility = "hidden";
     container.style.pointerEvents = "none";
 
-    // Create a pre element with Prism classes
     const pre = document.createElement("pre");
-    pre.className = "language-javascript"; // Use JavaScript as base language
-
-    // Create code element
     const code = document.createElement("code");
-    code.className = "language-javascript";
+    code.className = "hljs"; // Base class for highlight.js themes
 
     // Add sample tokens to extract colors from
     const tokenElements = this.createTokenElements();
@@ -184,132 +151,127 @@ export class DOMPrismThemeExtractor implements PrismThemeExtractor {
     document.body.appendChild(container);
 
     try {
-      // Extract colors using getComputedStyle
-      const preStyles = window.getComputedStyle(pre);
       const codeStyles = window.getComputedStyle(code);
 
       const theme: ThemeColorScheme = {
         background:
-          this.extractColor(preStyles.backgroundColor) ||
+          this.extractColor(codeStyles.backgroundColor) ||
           this.fallbackTheme.background,
         text: this.extractColor(codeStyles.color) || this.fallbackTheme.text,
-        lineNumber: this.fallbackTheme.lineNumber, // Will be extracted separately
+        lineNumber: this.fallbackTheme.lineNumber, // Use fallback as it's not in hljs themes
         tokens: {
           comment:
-            this.extractTokenColor(container, "comment") ||
+            this.extractTokenColor(container, "hljs-comment") ||
             this.fallbackTheme.tokens.comment,
           keyword:
-            this.extractTokenColor(container, "keyword") ||
+            this.extractTokenColor(container, "hljs-keyword") ||
             this.fallbackTheme.tokens.keyword,
           string:
-            this.extractTokenColor(container, "string") ||
+            this.extractTokenColor(container, "hljs-string") ||
             this.fallbackTheme.tokens.string,
           number:
-            this.extractTokenColor(container, "number") ||
+            this.extractTokenColor(container, "hljs-number") ||
             this.fallbackTheme.tokens.number,
           operator:
-            this.extractTokenColor(container, "operator") ||
+            this.extractTokenColor(container, "hljs-operator") ||
             this.fallbackTheme.tokens.operator,
           punctuation:
-            this.extractTokenColor(container, "punctuation") ||
+            this.extractTokenColor(container, "hljs-punctuation") ||
             this.fallbackTheme.tokens.punctuation,
           function:
-            this.extractTokenColor(container, "function") ||
+            this.extractTokenColor(container, "hljs-title") || // hljs uses 'title' for functions
             this.fallbackTheme.tokens.function,
           "class-name":
-            this.extractTokenColor(container, "class-name") ||
+            this.extractTokenColor(container, "hljs-class .hljs-title") || // and this for classes
             this.fallbackTheme.tokens["class-name"],
           variable:
-            this.extractTokenColor(container, "variable") ||
+            this.extractTokenColor(container, "hljs-variable") ||
             this.fallbackTheme.tokens.variable,
           property:
-            this.extractTokenColor(container, "property") ||
+            this.extractTokenColor(container, "hljs-property") ||
             this.fallbackTheme.tokens.property,
           tag:
-            this.extractTokenColor(container, "tag") ||
+            this.extractTokenColor(container, "hljs-tag") ||
             this.fallbackTheme.tokens.tag,
           "attr-name":
-            this.extractTokenColor(container, "attr-name") ||
+            this.extractTokenColor(container, "hljs-attr") ||
             this.fallbackTheme.tokens["attr-name"],
           "attr-value":
-            this.extractTokenColor(container, "attr-value") ||
+            this.extractTokenColor(container, "hljs-string") || // Often same as string
             this.fallbackTheme.tokens["attr-value"],
           regex:
-            this.extractTokenColor(container, "regex") ||
+            this.extractTokenColor(container, "hljs-regexp") ||
             this.fallbackTheme.tokens.regex,
           important:
-            this.extractTokenColor(container, "important") ||
+            this.extractTokenColor(container, "hljs-strong") ||
             this.fallbackTheme.tokens.important,
           bold:
-            this.extractTokenColor(container, "bold") ||
+            this.extractTokenColor(container, "hljs-strong") ||
             this.fallbackTheme.tokens.bold,
           italic:
-            this.extractTokenColor(container, "italic") ||
+            this.extractTokenColor(container, "hljs-emphasis") ||
             this.fallbackTheme.tokens.italic,
           plain:
             this.extractColor(codeStyles.color) ||
             this.fallbackTheme.tokens.plain,
         },
       };
-
       return theme;
     } finally {
-      // Clean up
       document.body.removeChild(container);
     }
   }
 
-  /**
-   * Create token elements for color extraction
-   */
   private createTokenElements(): HTMLElement[] {
-    const tokenTypes = [
-      "comment",
-      "keyword",
-      "string",
-      "number",
-      "operator",
-      "punctuation",
-      "function",
-      "class-name",
-      "variable",
-      "property",
-      "tag",
-      "attr-name",
-      "attr-value",
-      "regex",
-      "important",
-      "bold",
-      "italic",
+    const tokenClasses = [
+      "hljs-comment",
+      "hljs-keyword",
+      "hljs-string",
+      "hljs-number",
+      "hljs-operator",
+      "hljs-punctuation",
+      "hljs-title",
+      "hljs-variable",
+      "hljs-property",
+      "hljs-tag",
+      "hljs-attr",
+      "hljs-regexp",
+      "hljs-strong",
+      "hljs-emphasis",
     ];
 
-    return tokenTypes.map((tokenType) => {
+    const classElement = document.createElement("span");
+    classElement.className = "hljs-class";
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "hljs-title";
+    titleSpan.textContent = "ClassName";
+    classElement.appendChild(titleSpan);
+
+    const elements = tokenClasses.map((tokenClass) => {
       const span = document.createElement("span");
-      span.className = `token ${tokenType}`;
+      span.className = tokenClass;
       span.textContent = "sample";
       return span;
     });
+
+    elements.push(classElement);
+    return elements;
   }
 
-  /**
-   * Extract color for a specific token type
-   */
   private extractTokenColor(
     container: HTMLElement,
-    tokenType: string
+    selector: string
   ): string | null {
-    const tokenElement = container.querySelector(`.token.${tokenType}`);
+    const tokenElement = container.querySelector(
+      `.${selector.replace(/ /g, ".")}`
+    );
     if (!tokenElement) {
       return null;
     }
-
     const styles = window.getComputedStyle(tokenElement);
     return this.extractColor(styles.color);
   }
 
-  /**
-   * Extract and normalize color value
-   */
   private extractColor(colorValue: string): string | null {
     if (
       !colorValue ||
@@ -318,81 +280,33 @@ export class DOMPrismThemeExtractor implements PrismThemeExtractor {
     ) {
       return null;
     }
-
-    // Convert rgb/rgba to hex if needed
     if (colorValue.startsWith("rgb")) {
       return this.rgbToHex(colorValue);
     }
-
-    // Return hex colors as-is
     if (colorValue.startsWith("#")) {
       return colorValue;
     }
-
-    // Handle named colors
     return this.namedColorToHex(colorValue) || colorValue;
   }
 
-  /**
-   * Convert RGB/RGBA color to hex
-   */
   private rgbToHex(rgb: string): string {
     const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
-    if (!match) {
-      return rgb;
-    }
-
+    if (!match) return rgb;
     const r = parseInt(match[1], 10);
     const g = parseInt(match[2], 10);
     const b = parseInt(match[3], 10);
-
     return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
   }
 
-  /**
-   * Convert named colors to hex (basic implementation)
-   */
   private namedColorToHex(colorName: string): string | null {
+    // This can be expanded if needed
     const namedColors: Record<string, string> = {
       black: "#000000",
       white: "#ffffff",
-      red: "#ff0000",
-      green: "#008000",
-      blue: "#0000ff",
-      yellow: "#ffff00",
-      cyan: "#00ffff",
-      magenta: "#ff00ff",
-      silver: "#c0c0c0",
-      gray: "#808080",
-      grey: "#808080",
-      maroon: "#800000",
-      olive: "#808000",
-      lime: "#00ff00",
-      aqua: "#00ffff",
-      teal: "#008080",
-      navy: "#000080",
-      fuchsia: "#ff00ff",
-      purple: "#800080",
     };
-
     return namedColors[colorName.toLowerCase()] || null;
-  }
-
-  /**
-   * Try to load cached theme from sessionStorage
-   */
-  private loadCachedTheme(): ThemeColorScheme | null {
-    try {
-      const cached = sessionStorage.getItem(this.cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
-    } catch (e) {
-      // Ignore storage errors
-    }
-    return null;
   }
 }
 
 // Export singleton instance
-export const prismThemeExtractor = new DOMPrismThemeExtractor();
+export const themeExtractor = new HighlightJsThemeExtractor();

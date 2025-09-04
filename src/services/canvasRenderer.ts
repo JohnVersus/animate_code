@@ -1,5 +1,5 @@
 import { syntaxHighlightingService } from "./syntaxHighlighting";
-import { prismThemeExtractor, ThemeColorScheme } from "./prismThemeExtractor";
+import { themeExtractor, ThemeColorScheme } from "./themeExtractor";
 import { LineRange } from "../types";
 import { MotionCanvasAnimationEngine } from "./animationEngine";
 import { animationViewport, ViewportConfig } from "./viewportConfig";
@@ -17,15 +17,15 @@ export interface CanvasRendererService {
 }
 
 export class CodeCanvasRenderer implements CanvasRendererService {
-  // Dynamic theme colors extracted from Prism.js
+  // Dynamic theme colors extracted from the theme
   private themeColors: ThemeColorScheme | null = null;
 
   /**
-   * Update theme colors from Prism.js theme extractor
+   * Update theme colors from the theme extractor
    */
   updateTheme(): void {
     try {
-      this.themeColors = prismThemeExtractor.extractThemeColors();
+      this.themeColors = themeExtractor.extractThemeColors();
     } catch (error) {
       console.warn("Failed to update canvas renderer theme:", error);
       // Keep existing theme or use null to trigger fallback
@@ -39,7 +39,7 @@ export class CodeCanvasRenderer implements CanvasRendererService {
   private getThemeColors(): ThemeColorScheme {
     if (!this.themeColors) {
       try {
-        this.themeColors = prismThemeExtractor.extractThemeColors();
+        this.themeColors = themeExtractor.extractThemeColors();
       } catch (error) {
         console.warn("Failed to extract theme colors, using fallback:", error);
         // Return a basic fallback theme matching CodeEditor's bg-gray-900

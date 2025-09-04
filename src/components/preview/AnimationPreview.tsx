@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { canvasRenderer } from "../../services/canvasRenderer";
 import { animationEngine } from "../../services/animationEngine";
-import { prismThemeExtractor } from "../../services/prismThemeExtractor";
+import { themeExtractor } from "../../services/themeExtractor";
 import { Slide } from "../../types";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,17 +65,17 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
 
   // Initialize theme extraction when component mounts
   useEffect(() => {
-    // Delay theme extraction to ensure Prism CSS is loaded
+    // Delay theme extraction to ensure theme CSS is loaded
     const initializeTheme = () => {
       try {
         // Clear any cached theme to ensure fresh extraction
-        prismThemeExtractor.clearCache();
+        themeExtractor.clearCache();
 
         // Update canvas renderer with extracted theme colors
         canvasRenderer.updateTheme();
 
         // Debug: Log the extracted background color
-        const bgColor = prismThemeExtractor.getBackgroundColor();
+        const bgColor = themeExtractor.getBackgroundColor();
         console.log("Theme extraction initialized for AnimationPreview");
         console.log("Extracted background color:", bgColor);
 
