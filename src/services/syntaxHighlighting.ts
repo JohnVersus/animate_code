@@ -78,6 +78,14 @@ export class HighlightJsSyntaxHighlightingService
     hljs.configure({
       ignoreUnescapedHTML: true,
     });
+
+    // WORKAROUND: The haskell grammar in highlight.js 11.11.1 has a bug that
+    // causes a "SyntaxError: Invalid regular expression" in Next.js prod builds.
+    // Unregistering the language works around this issue.
+    // See: https://pliszko.com/blog/post/2025-08-17-fixing-invalid-regular-expression-error-highlightjs-nextjs-prod-build
+    if (hljs.getLanguage("haskell")) {
+      hljs.unregisterLanguage("haskell");
+    }
   }
 
   detectLanguage(code: string): string {
