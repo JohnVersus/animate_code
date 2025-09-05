@@ -234,6 +234,13 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                     <span>{Math.round(exportProgress.progress * 100)}%</span>
                   </div>
 
+                  {/* Warning Message */}
+                  <p className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 p-2 rounded-md">
+                    Warning: To avoid interruptions, please do not switch
+                    browser tabs or minimize the window during the export
+                    process.
+                  </p>
+
                   {/* Progress Bar */}
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
