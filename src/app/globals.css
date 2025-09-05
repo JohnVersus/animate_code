@@ -206,12 +206,3 @@
 .code-editor-container .token {
   line-height: inherit !important;
 }
-
-.code-editor-scroll-container {
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.code-editor-container ::-webkit-scrollbar {
-  display: none;
-}
