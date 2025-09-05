@@ -153,7 +153,9 @@ export class HighlightJsSyntaxHighlightingService
           .replace(/&amp;/g, "&")
           .replace(/&lt;/g, "<")
           .replace(/&gt;/g, ">")
-          .replace(/&quot;/g, '"');
+          .replace(/&quot;/g, '"')
+          .replace(/&#x27;/g, "'")
+          .replace(/&apos;/g, "'");
         const currentType =
           typeStack.length > 0 ? typeStack[typeStack.length - 1] : "plain";
         tokens.push({ type: currentType, content });
