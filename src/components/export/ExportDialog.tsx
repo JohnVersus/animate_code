@@ -111,6 +111,10 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     }
   };
 
+  const isOutOfMemoryError =
+    exportProgress?.phase === "error" &&
+    exportProgress.error?.message.toLowerCase().includes("out of memory");
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
@@ -295,12 +299,21 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                     Done
                   </Button>
                 ) : exportProgress?.phase === "error" ? (
-                  <Button
-                    onClick={handleExport}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Retry
-                  </Button>
+                  isOutOfMemoryError ? (
+                    <Button
+                      onClick={() => window.location.reload()}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Reload Page
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleExport}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Retry
+                    </Button>
+                  )
                 ) : (
                   <Button
                     onClick={handleExport}
