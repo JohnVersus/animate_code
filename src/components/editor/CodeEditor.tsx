@@ -60,6 +60,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
   const [detectedLanguage, setDetectedLanguage] = useState<string>("");
   const [isManuallySelected, setIsManuallySelected] = useState(false);
   const [previousCode, setPreviousCode] = useState<string>("");
@@ -121,11 +122,15 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, [code, language]);
 
-  // Sync scroll between textarea and pre
+  // Sync scroll between textarea, pre, and line numbers
   const handleScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
+    const { scrollTop, scrollLeft } = e.currentTarget;
     if (preRef.current) {
-      preRef.current.scrollTop = e.currentTarget.scrollTop;
-      preRef.current.scrollLeft = e.currentTarget.scrollLeft;
+      preRef.current.scrollTop = scrollTop;
+      preRef.current.scrollLeft = scrollLeft;
+    }
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = scrollTop;
     }
   }, []);
 
@@ -179,9 +184,17 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       </div>
 
       {/* Code Editor */}
-      <div className="relative flex bg-gray-900 text-white font-mono text-sm code-editor-container">
+      <div className="relative flex bg-gray-900 text-white font-mono text-sm code-editor-container max-h-[80vh]">
         {/* Line Numbers */}
-        <div className="flex-shrink-0 py-4 pl-4 pr-2 bg-gray-800 border-r border-gray-700 select-none">
+        <div
+          ref={lineNumbersRef}
+          className="flex-shrink-0 py-4 pl-4 pr-2 bg-gray-800 border-r border-gray-700 select-none"
+          style={{
+            overflow: "hidden",
+            scrollbarWidth: "none", // Hide scrollbar for Firefox
+            msOverflowStyle: "none", // Hide scrollbar for IE/Edge
+          }}
+        >
           {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNum) => {
             const isHighlighted = highlightedLines.includes(lineNum);
             return (
@@ -221,7 +234,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         </div>
 
         {/* Code Content */}
-        <div className="relative flex-1 overflow-hidden">
+        <div className="relative flex-1">
           {/* Line Highlighting Overlay - Behind everything */}
           {highlightedLines.length > 0 && (
             <div className="absolute inset-0 p-4 pointer-events-none overflow-hidden z-0">
@@ -247,11 +260,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           {/* Syntax Highlighted Code (Background) */}
           <pre
             ref={preRef}
-            // FIX 3: Removed `language-${language}` class as it's no longer needed with the new useEffect.
-            className="absolute inset-0 p-4 overflow-auto whitespace-pre-wrap break-words pointer-events-none z-10 text-xs"
+            className="absolute inset-0 p-4 whitespace-pre-wrap break-words pointer-events-none z-10 text-xs"
             style={{
               margin: 0,
               lineHeight: "1.5rem",
+              overflow: "hidden",
             }}
           />
 
@@ -262,10 +275,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             onChange={handleInput}
             onScroll={handleScroll}
             placeholder="Paste your code here..."
-            className="absolute inset-0 p-4 w-full h-full bg-transparent text-transparent caret-white resize-none outline-none overflow-auto whitespace-pre-wrap break-words z-20 text-xs"
+            className="absolute inset-0 p-4 w-full h-full bg-transparent text-transparent caret-white resize-none outline-none whitespace-pre-wrap break-words z-20 text-xs"
             style={{
               margin: 0,
               lineHeight: "1.5rem",
+              overflow: "auto",
             }}
             spellCheck={false}
           />
