@@ -54,6 +54,19 @@ class MotionCanvasVideoExportService implements VideoExportService {
     this.currentExportId = Date.now().toString();
 
     try {
+      // If format is GIF, use the new streaming method.
+      // The rest of the function will handle non-GIF formats.
+      if (options.videoSettings.format === "gif") {
+        return await this.exportGifStreamed(
+          code,
+          language,
+          slides,
+          options,
+          onProgress,
+          globalSpeed
+        );
+      }
+
       // Validate inputs
       if (!code.trim()) {
         throw new Error("No code provided for export");
@@ -67,15 +80,13 @@ class MotionCanvasVideoExportService implements VideoExportService {
         throw new Error("Video export is not supported in this browser");
       }
 
-      // Check if the requested format is supported (skip for GIF)
-      if (options.videoSettings.format !== "gif") {
-        const mimeType =
-          options.videoSettings.format === "mp4" ? "video/mp4" : "video/webm";
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          throw new Error(
-            `${options.videoSettings.format.toUpperCase()} format is not supported in this browser`
-          );
-        }
+      // Check if the requested format is supported
+      const mimeType =
+        options.videoSettings.format === "mp4" ? "video/mp4" : "video/webm";
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        throw new Error(
+          `${options.videoSettings.format.toUpperCase()} format is not supported in this browser`
+        );
       }
 
       // Phase 1: Preparing
@@ -142,14 +153,6 @@ class MotionCanvasVideoExportService implements VideoExportService {
         globalSpeed
       );
 
-      // Debug: Log animation steps
-      console.log(`Animation steps:`, animationSteps.length);
-      animationSteps.forEach((step, index) => {
-        console.log(
-          `Step ${index}: startTime=${step.startTime}ms, duration=${step.duration}ms, slideIndex=${step.slideIndex}`
-        );
-      });
-
       // Render each frame
       for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
         if (this.shouldCancel) {
@@ -169,12 +172,6 @@ class MotionCanvasVideoExportService implements VideoExportService {
         frames.push(frameData);
         currentFrame++;
 
-        // Debug: Log frame timing for first few frames
-        if (frameIndex < 5) {
-          console.log(`Frame ${frameIndex}: time=${timeInSeconds}s`);
-        }
-
-        // Update progress every 10 frames or at the end
         if (currentFrame % 10 === 0 || currentFrame === totalFrames) {
           onProgress?.({
             phase: "rendering",
@@ -197,11 +194,11 @@ class MotionCanvasVideoExportService implements VideoExportService {
       });
 
       // Create video/gif blob from frames
-      const videoBlob = await this.encodeFramesToVideo(
+      const videoBlob = await this.fallbackMediaRecorderExport(
         frames,
         frameRate,
         dimensions,
-        options.videoSettings.format,
+        options.videoSettings.format as "mp4" | "webm",
         (progress) => {
           onProgress?.({
             phase: "encoding",
@@ -212,6 +209,9 @@ class MotionCanvasVideoExportService implements VideoExportService {
           });
         }
       );
+
+      // Clear frames from memory as they are no longer needed
+      frames.length = 0;
 
       // Phase 4: Complete
       onProgress?.({
@@ -297,17 +297,9 @@ class MotionCanvasVideoExportService implements VideoExportService {
       timeInSeconds
     );
 
-    // Debug: Log current step for first few frames
-    if (timeInSeconds < 1) {
-      console.log(
-        `Time ${timeInSeconds}s: currentStep=`,
-        currentStep ? `slideIndex=${currentStep.slideIndex}` : "null"
-      );
-    }
-
     if (currentStep) {
       // Calculate progress within the current step
-      const stepStartTimeInSeconds = currentStep.startTime / 1000; // Convert from milliseconds to seconds
+      const stepStartTimeInSeconds = currentStep.startTime / 1000;
       const stepProgress = Math.min(
         1,
         Math.max(
@@ -375,8 +367,7 @@ class MotionCanvasVideoExportService implements VideoExportService {
         );
       }
     } else {
-      // Clear canvas if no step is active
-      ctx.fillStyle = "#111827"; // Match the theme background
+      ctx.fillStyle = "#111827";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -388,7 +379,7 @@ class MotionCanvasVideoExportService implements VideoExportService {
     timeInSeconds: number
   ) {
     for (const step of animationSteps) {
-      const stepStartTime = step.startTime / 1000; // Convert from milliseconds to seconds
+      const stepStartTime = step.startTime / 1000;
       const stepEndTime = stepStartTime + step.duration / 1000;
 
       if (timeInSeconds >= stepStartTime && timeInSeconds < stepEndTime) {
@@ -441,35 +432,23 @@ class MotionCanvasVideoExportService implements VideoExportService {
     };
   }
 
-  private async encodeFramesToVideo(
-    frames: ImageData[],
-    frameRate: number,
-    dimensions: { width: number; height: number },
-    format: "mp4" | "webm" | "gif",
-    onProgress?: (progress: number) => void
+  private async exportGifStreamed(
+    code: string,
+    language: string,
+    slides: Slide[],
+    options: ExportOptions,
+    onProgress?: (progress: ExportProgress) => void,
+    globalSpeed: number = 1.0
   ): Promise<Blob> {
-    if (format === "gif") {
-      return this.encodeFramesToGIF(frames, frameRate, dimensions, onProgress);
-    } else {
-      // Use MediaRecorder for video encoding
-      return this.fallbackMediaRecorderExport(
-        frames,
-        frameRate,
-        dimensions,
-        format,
-        onProgress
-      );
-    }
-  }
+    const { frameRate, resolution } = options.videoSettings;
+    const totalDuration =
+      slides.reduce((sum, slide) => sum + slide.duration / globalSpeed, 0) /
+      1000;
+    const bufferDuration = 0.5;
+    const totalDurationWithBuffer = totalDuration + bufferDuration;
+    const totalFrames = Math.ceil(totalDurationWithBuffer * frameRate);
+    const dimensions = this.getResolutionDimensions(resolution);
 
-  private async encodeFramesToGIF(
-    frames: ImageData[],
-    frameRate: number,
-    dimensions: { width: number; height: number },
-    onProgress?: (progress: number) => void
-  ): Promise<Blob> {
-    // Test GIF library first
-    console.log("Testing GIF library...");
     const isGifWorking = await testGifLibrary();
     if (!isGifWorking) {
       throw new Error(
@@ -477,94 +456,112 @@ class MotionCanvasVideoExportService implements VideoExportService {
       );
     }
 
-    return new Promise((resolve, reject) => {
-      try {
-        const gif = new GIF({
-          workers: 2, // Enable workers now that we have the worker script
-          quality: 20, // Good balance of quality and speed
-          width: dimensions.width,
-          height: dimensions.height,
-          workerScript: "/gif.worker.js", // Use the worker script
-        });
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Failed to create canvas context");
+    }
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
+    const contentSize =
+      canvasRenderer.getCanvasSizeWithViewport(exportViewport);
+    const scale = Math.min(
+      dimensions.width / contentSize.width,
+      dimensions.height / contentSize.height
+    );
+    (canvas as any)._exportScale = scale;
+    (canvas as any)._contentSize = contentSize;
 
-        gif.on("progress", (progress: number) => {
-          console.log("GIF encoding progress:", progress);
-          onProgress?.(progress);
-        });
+    const animationSteps = this.calculateAnimationSteps(
+      code,
+      slides,
+      globalSpeed
+    );
 
-        gif.on("finished", (blob: Blob) => {
-          console.log("GIF encoding finished, blob size:", blob.size);
-
-          // Create a new blob with the correct MIME type for GIF
-          const gifBlob = new Blob([blob], { type: "image/gif" });
-          resolve(gifBlob);
-        });
-
-        // Calculate delay between frames (in milliseconds)
-        const delay = Math.round(1000 / frameRate);
-
-        console.log(
-          `Adding ${frames.length} frames to GIF with delay ${delay}ms, dimensions: ${dimensions.width}x${dimensions.height}`
-        );
-
-        // Add frames with error handling - create a new canvas for each frame
-        try {
-          frames.forEach((frame, index) => {
-            // Create a new canvas for each frame to avoid reference issues
-            const frameCanvas = document.createElement("canvas");
-            frameCanvas.width = dimensions.width;
-            frameCanvas.height = dimensions.height;
-            const frameCtx = frameCanvas.getContext("2d");
-
-            if (!frameCtx) {
-              throw new Error(
-                `Failed to create canvas context for frame ${index}`
-              );
-            }
-
-            // Draw the frame data to the canvas
-            frameCtx.putImageData(frame, 0, 0);
-
-            // Debug: Check if frames are different by sampling a pixel
-            if (
-              index === 0 ||
-              index === Math.floor(frames.length / 2) ||
-              index === frames.length - 1
-            ) {
-              const imageData = frameCtx.getImageData(100, 100, 1, 1);
-              console.log(
-                `Frame ${index} pixel sample (100,100):`,
-                imageData.data
-              );
-            }
-
-            // Add this specific canvas to the GIF
-            gif.addFrame(frameCanvas, { delay });
-
-            // Log progress for debugging
-            if (index % 10 === 0) {
-              console.log(`Added frame ${index + 1}/${frames.length}`);
-            }
-          });
-        } catch (frameError) {
-          reject(new Error(`Failed to add frames: ${frameError}`));
-          return;
-        }
-
-        console.log("Starting GIF render...");
-
-        // Add a small delay before rendering to ensure all frames are added
-        setTimeout(() => {
-          try {
-            gif.render();
-          } catch (renderError) {
-            reject(new Error(`Failed to start GIF render: ${renderError}`));
-          }
-        }, 100);
-      } catch (error) {
-        reject(error);
-      }
+    const gif = new GIF({
+      workers: 2,
+      quality: 20,
+      width: dimensions.width,
+      height: dimensions.height,
+      workerScript: "/gif.worker.js",
     });
+
+    const gifPromise = new Promise<Blob>((resolve) => {
+      gif.on("finished", (blob: Blob) => {
+        const gifBlob = new Blob([blob], { type: "image/gif" });
+        resolve(gifBlob);
+      });
+    });
+
+    gif.on("progress", (p: number) => {
+      onProgress?.({
+        phase: "encoding",
+        progress: p,
+        message: `Encoding GIF... ${Math.round(p * 100)}%`,
+      });
+    });
+
+    const delay = Math.round(1000 / frameRate);
+
+    for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+      if (this.shouldCancel) {
+        throw new Error("Export cancelled by user");
+      }
+
+      const timeInSeconds = frameIndex / frameRate;
+      const frameData = this.renderFrameAtTime(
+        canvas,
+        ctx,
+        code,
+        language,
+        animationSteps,
+        timeInSeconds
+      );
+
+      const frameCanvas = document.createElement("canvas");
+      frameCanvas.width = dimensions.width;
+      frameCanvas.height = dimensions.height;
+      const frameCtx = frameCanvas.getContext("2d");
+      if (!frameCtx) {
+        throw new Error(
+          `Failed to create canvas context for frame ${frameIndex}`
+        );
+      }
+      frameCtx.putImageData(frameData, 0, 0);
+      gif.addFrame(frameCanvas, { delay });
+
+      onProgress?.({
+        phase: "rendering",
+        progress: (frameIndex + 1) / totalFrames,
+        currentFrame: frameIndex + 1,
+        totalFrames,
+        message: `Rendering frame ${frameIndex + 1} of ${totalFrames}...`,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    onProgress?.({
+      phase: "encoding",
+      progress: 0,
+      message: "Finalizing GIF...",
+    });
+
+    try {
+      gif.render();
+    } catch (e: any) {
+      throw new Error(`Failed to start GIF render: ${e.message || e}`);
+    }
+
+    const videoBlob = await gifPromise;
+
+    onProgress?.({
+      phase: "complete",
+      progress: 1,
+      message: "Export completed successfully!",
+    });
+
+    return videoBlob;
   }
 
   private async fallbackMediaRecorderExport(

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -240,9 +240,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
                   {/* Warning Message */}
                   <p className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 p-2 rounded-md">
-                    Warning: To avoid interruptions, please do not switch
-                    browser tabs or minimize the window during the export
-                    process.
+                    Warning: Please do not switch browser tabs or minimize the
+                    window during the export process.
                   </p>
 
                   {/* Progress Bar */}

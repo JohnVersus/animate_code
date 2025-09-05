@@ -98,15 +98,14 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           phase: "error",
           progress: 0,
           message: error instanceof Error ? error.message : "Export failed",
-          error:
-            error instanceof Error
-              ? {
-                  type: "EXPORT_ERROR" as any,
-                  message: error.message,
-                  details: error,
-                  timestamp: new Date(),
-                }
-              : undefined,
+          error: error
+            ? {
+                type: "EXPORT_ERROR" as any,
+                message: (error as any).message,
+                details: error,
+                timestamp: new Date(),
+              }
+            : undefined,
         });
       }
     },
