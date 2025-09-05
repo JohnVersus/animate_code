@@ -88,7 +88,7 @@ export function SlideManager({
       const newSlide: Slide = {
         ...slideToClone,
         id: crypto.randomUUID(),
-        name: `${slideToClone.name} C`,
+        name: `${slideToClone.name}`,
         order: slides.length,
       };
 
