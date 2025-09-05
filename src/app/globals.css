@@ -172,7 +172,6 @@
 .code-editor-container {
   /* Ensure consistent line height across all elements */
   line-height: 1.5rem;
-  max-height: 500px;
 }
 
 .code-editor-container pre,
