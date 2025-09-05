@@ -478,11 +478,6 @@ class MotionCanvasVideoExportService implements VideoExportService {
     }
 
     return new Promise((resolve, reject) => {
-      // Set a timeout to prevent hanging
-      const timeout = setTimeout(() => {
-        reject(new Error("GIF encoding timed out after 60 seconds"));
-      }, 60000);
-
       try {
         const gif = new GIF({
           workers: 2, // Enable workers now that we have the worker script
@@ -499,7 +494,6 @@ class MotionCanvasVideoExportService implements VideoExportService {
 
         gif.on("finished", (blob: Blob) => {
           console.log("GIF encoding finished, blob size:", blob.size);
-          clearTimeout(timeout);
 
           // Create a new blob with the correct MIME type for GIF
           const gifBlob = new Blob([blob], { type: "image/gif" });
@@ -553,7 +547,6 @@ class MotionCanvasVideoExportService implements VideoExportService {
             }
           });
         } catch (frameError) {
-          clearTimeout(timeout);
           reject(new Error(`Failed to add frames: ${frameError}`));
           return;
         }
@@ -565,12 +558,10 @@ class MotionCanvasVideoExportService implements VideoExportService {
           try {
             gif.render();
           } catch (renderError) {
-            clearTimeout(timeout);
             reject(new Error(`Failed to start GIF render: ${renderError}`));
           }
         }, 100);
       } catch (error) {
-        clearTimeout(timeout);
         reject(error);
       }
     });
