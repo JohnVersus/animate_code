@@ -23,53 +23,47 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   const [isGif, setIsGif] = useState(false);
 
   useEffect(() => {
-    // Create object URL for the video blob
     const url = URL.createObjectURL(videoBlob);
     setVideoUrl(url);
     setMetadataLoaded(false);
     setDuration(0);
 
-    // Check if this is a GIF file
     const isGifFile =
       videoBlob.type === "image/gif" || fileName.toLowerCase().endsWith(".gif");
     setIsGif(isGifFile);
 
-    // Cleanup function to revoke the URL when component unmounts
     return () => {
       URL.revokeObjectURL(url);
     };
   }, [videoBlob, fileName]);
 
-  // Retry mechanism for WebM files that might take longer to load metadata
   useEffect(() => {
-    if (!metadataLoaded && videoUrl && videoRef.current) {
-      let retryCount = 0;
-      const maxRetries = 10;
+    const video = videoRef.current;
+    if (!video) return;
 
-      const checkDuration = () => {
-        if (videoRef.current && retryCount < maxRetries) {
-          const videoDuration = videoRef.current.duration;
-          if (
-            isFinite(videoDuration) &&
-            !isNaN(videoDuration) &&
-            videoDuration > 0
-          ) {
-            setDuration(videoDuration);
-            setMetadataLoaded(true);
-            return;
-          }
+    const handleLoadedMetadata = () => {
+      // This will be triggered when the browser has enough data to determine the duration
+      // For some formats (like webm), we need to seek to the end to get the duration
+      video.currentTime = 1e101;
+    };
 
-          retryCount++;
-          setTimeout(checkDuration, 200); // Check every 200ms
-        }
-      };
+    const handleDurationChange = () => {
+      if (video.duration && isFinite(video.duration)) {
+        setDuration(video.duration);
+        setMetadataLoaded(true);
+        // Seek back to the beginning
+        video.currentTime = 0;
+      }
+    };
 
-      // Start checking after a small delay
-      const timer = setTimeout(checkDuration, 100);
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("durationchange", handleDurationChange);
 
-      return () => clearTimeout(timer);
-    }
-  }, [videoUrl, metadataLoaded]);
+    return () => {
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("durationchange", handleDurationChange);
+    };
+  }, [videoUrl]);
 
   const handlePlayPause = () => {
     if (videoRef.current) {
@@ -88,36 +82,6 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       // Only update time if it's a valid finite number
       if (isFinite(time) && !isNaN(time)) {
         setCurrentTime(time);
-      }
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      const videoDuration = videoRef.current.duration;
-      // Only set duration if it's a valid finite number
-      if (
-        isFinite(videoDuration) &&
-        !isNaN(videoDuration) &&
-        videoDuration > 0
-      ) {
-        setDuration(videoDuration);
-        setMetadataLoaded(true);
-      }
-    }
-  };
-
-  // Additional handler specifically for WebM files that might need more time
-  const handleCanPlayThrough = () => {
-    if (videoRef.current && !metadataLoaded) {
-      const videoDuration = videoRef.current.duration;
-      if (
-        isFinite(videoDuration) &&
-        !isNaN(videoDuration) &&
-        videoDuration > 0
-      ) {
-        setDuration(videoDuration);
-        setMetadataLoaded(true);
       }
     }
   };
@@ -167,11 +131,6 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
             className="w-full h-auto max-h-[48rem]"
             preload="metadata"
             onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onCanPlay={handleLoadedMetadata}
-            onCanPlayThrough={handleCanPlayThrough}
-            onDurationChange={handleLoadedMetadata}
-            onLoadedData={handleLoadedMetadata}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onEnded={() => setIsPlaying(false)}
