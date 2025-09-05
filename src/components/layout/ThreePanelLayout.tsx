@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Slide, AnimationState } from "@/types";
+import { updateLineRanges } from "@/lib/line-numbers";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -166,6 +167,38 @@ function createCalculator() {
     setCurrentProjectName(projectName);
   };
 
+  const handleLineNumberToggle = useCallback(
+    (lineNumber: number) => {
+      if (
+        slides.length === 0 ||
+        currentSlide < 0 ||
+        currentSlide >= slides.length
+      ) {
+        return;
+      }
+
+      const slide = slides[currentSlide];
+      const isHighlighted = highlightedLines.includes(lineNumber);
+
+      const updatedRanges = updateLineRanges(
+        slide.lineRanges,
+        lineNumber,
+        isHighlighted ? "remove" : "add"
+      );
+
+      const updatedSlide = { ...slide, lineRanges: updatedRanges };
+
+      const newSlides = [
+        ...slides.slice(0, currentSlide),
+        updatedSlide,
+        ...slides.slice(currentSlide + 1),
+      ];
+
+      handleSlidesChange(newSlides);
+    },
+    [slides, currentSlide, highlightedLines, handleSlidesChange]
+  );
+
   // Update highlighted lines when slides or current slide changes
   useEffect(() => {
     if (
@@ -226,6 +259,7 @@ function createCalculator() {
                 onCodeChange={setCode}
                 onLanguageChange={setLanguage}
                 highlightedLines={highlightedLines}
+                onLineNumberClick={handleLineNumberToggle}
                 className="h-full"
               />
             </div>

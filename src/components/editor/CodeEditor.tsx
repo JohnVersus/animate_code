@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ interface CodeEditorProps {
   onCodeChange: (code: string) => void;
   onLanguageChange: (language: string) => void;
   highlightedLines?: number[];
+  onLineNumberClick?: (lineNumber: number) => void;
   className?: string;
 }
 
@@ -53,6 +55,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   onCodeChange,
   onLanguageChange,
   highlightedLines = [],
+  onLineNumberClick,
   className = "",
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -179,26 +182,42 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       <div className="relative flex bg-gray-900 text-white font-mono text-sm code-editor-container">
         {/* Line Numbers */}
         <div className="flex-shrink-0 py-4 pl-4 pr-2 bg-gray-800 border-r border-gray-700 select-none">
-          {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNum) => (
-            <div
-              key={lineNum}
-              className={`text-right text-xs ${
-                highlightedLines.includes(lineNum)
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-400"
-              }`}
-              style={{
-                minWidth: "2rem",
-                lineHeight: "1.5rem",
-                height: "1.5rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-              }}
-            >
-              {lineNum}
-            </div>
-          ))}
+          {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNum) => {
+            const isHighlighted = highlightedLines.includes(lineNum);
+            return (
+              <div
+                key={lineNum}
+                className={`text-xs h-[1.5rem] flex items-center justify-between ${
+                  isHighlighted ? "bg-blue-600 text-white" : "text-gray-400"
+                }`}
+                style={{
+                  minWidth: "3.5rem",
+                  lineHeight: "1.5rem",
+                  paddingLeft: "0.5rem",
+                  paddingRight: "0.5rem",
+                }}
+              >
+                <Button
+                  onClick={() => onLineNumberClick?.(lineNum)}
+                  variant="ghost"
+                  size="sm"
+                  className={`w-6 h-6 p-0  ${
+                    isHighlighted
+                      ? "text-red-500 hover:text-red-400 hover:bg-amber-400"
+                      : "text-green-500 hover:text-green-400 hover:bg-blue-700"
+                  }`}
+                  aria-label={
+                    isHighlighted
+                      ? `Remove line ${lineNum}`
+                      : `Add line ${lineNum}`
+                  }
+                >
+                  {isHighlighted ? "-" : "+"}
+                </Button>
+                <span>{lineNum}</span>
+              </div>
+            );
+          })}
         </div>
 
         {/* Code Content */}
