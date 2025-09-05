@@ -106,7 +106,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, [code, language, onLanguageChange, isManuallySelected, previousCode]);
 
-  // Highlighting logic
+  // FIX 2: Refactor highlighting logic for efficiency and clarity.
+  // This approach generates the highlighted HTML and sets it in one operation.
   useEffect(() => {
     if (preRef.current) {
       if (code) {
@@ -150,12 +151,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     [onLanguageChange]
   );
 
-  // Add a newline to the code if it doesn't end with one, for consistent height calculation
-  const displayCode = code.endsWith("\n") ? code : code + "\n";
-  const lines = displayCode.split("\n");
-  // The split will create an extra empty string at the end, so we pop it.
-  lines.pop();
-  const lineCount = lines.length === 0 ? 1 : lines.length;
+  // Generate line numbers
+  const lines = code.split("\n");
+  const lineCount = lines.length;
 
   return (
     <div className={`code-editor ${className}`}>
@@ -186,7 +184,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       </div>
 
       {/* Code Editor */}
-      <div className="relative flex bg-gray-900 text-white font-mono text-sm code-editor-container max-h-[90vh]">
+      <div className="relative flex bg-gray-900 text-white font-mono text-sm code-editor-container max-h-[80vh]">
         {/* Line Numbers */}
         <div
           ref={lineNumbersRef}
@@ -240,7 +238,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           {/* Line Highlighting Overlay - Behind everything */}
           {highlightedLines.length > 0 && (
             <div className="absolute inset-0 p-4 pointer-events-none overflow-hidden z-0">
-              {lines.map((line, index) => (
+              {code.split("\n").map((line, index) => (
                 <div
                   key={index}
                   className={`${
