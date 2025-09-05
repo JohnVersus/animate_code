@@ -166,13 +166,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             </SelectContent>
           </Select>
         </div>
-        {detectedLanguage && detectedLanguage !== language && (
+        {/* {detectedLanguage && detectedLanguage !== language && (
           <div className="text-xs text-gray-500">
             Detected:{" "}
             {SUPPORTED_LANGUAGES[detectedLanguage as SupportedLanguage] ||
               detectedLanguage}
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Code Editor */}
