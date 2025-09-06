@@ -219,6 +219,9 @@ function createCalculator() {
     }
   }, [slides, currentSlide]);
 
+  const disableLineNumberButtons =
+    slides.length === 0 || currentSlide < 0 || currentSlide >= slides.length;
+
   return (
     <div className="h-full bg-gray-100">
       <ResizablePanelGroup direction="horizontal" className="h-full">
@@ -261,6 +264,7 @@ function createCalculator() {
                 highlightedLines={highlightedLines}
                 onLineNumberClick={handleLineNumberToggle}
                 className="h-full"
+                disableLineNumberButtons={disableLineNumberButtons}
               />
             </div>
           </div>

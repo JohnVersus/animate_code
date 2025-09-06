@@ -20,6 +20,7 @@ interface CodeEditorProps {
   highlightedLines?: number[];
   onLineNumberClick?: (lineNumber: number) => void;
   className?: string;
+  disableLineNumberButtons?: boolean;
 }
 
 // Supported languages with their display names
@@ -57,6 +58,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   highlightedLines = [],
   onLineNumberClick,
   className = "",
+  disableLineNumberButtons = false,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
@@ -201,6 +203,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
                   onClick={() => onLineNumberClick?.(lineNum)}
                   variant="ghost"
                   size="sm"
+                  disabled={disableLineNumberButtons}
                   className={`w-6 h-6 p-0  ${
                     isHighlighted
                       ? "text-red-500 hover:text-red-400 hover:bg-amber-400"
