@@ -233,8 +233,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
   useEffect(() => {
     if (isPlaying && slides.length > 0) {
       setPreviewMode("animated");
-      startTimeRef.current = null;
-      lastActiveSlideRef.current = 0; // Reset slide tracking
+      // Adjust startTimeRef to resume from currentTime
+      startTimeRef.current = performance.now() - currentTime * 1000;
       animationRef.current = requestAnimationFrame(animationLoop);
     } else {
       setPreviewMode("static");
@@ -242,7 +242,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
-      startTimeRef.current = null;
+      // When pausing, we don't need to do anything to startTimeRef.
+      // The currentTime is already captured in the state.
     }
 
     return () => {
@@ -255,6 +256,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
   // Timeline scrubbing handler
   const handleTimelineSeek = (seekTime: number) => {
     setCurrentTime(seekTime);
+    // Also update startTimeRef so the animation loop continues from the new time
+    startTimeRef.current = performance.now() - seekTime * 1000;
 
     // Find which slide corresponds to this time
     let accumulatedTime = 0;
