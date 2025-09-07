@@ -564,6 +564,20 @@ function example() {
           ))
         )}
       </div>
+      <div className="p-2 flex justify-center">
+        <a
+          href="https://www.producthunt.com/products/code-animator?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-code&#0045;animator"
+          target="_blank"
+        >
+          <img
+            src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1013746&theme=light&t=1757233761391"
+            alt="Code&#0032;Animator - Convert&#0032;the&#0032;code&#0032;into&#0032;an&#0032;animated&#0032;video | Product Hunt"
+            className="w-[250px] h-[54px]"
+            width="250"
+            height="54"
+          />
+        </a>
+      </div>
     </div>
   );
 }
