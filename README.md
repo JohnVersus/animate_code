@@ -1,6 +1,6 @@
 # Code Animator
 
-> Built as a part of the [Kiro hackathon](https://kiro.dev?utm_source=code-animator-readme).
+> Built as a part of the [Kiro hackathon](https://kiro.dev?utm_source=code-animator-github).
 
 A powerful web application for creating animated presentations of code snippets. Transform your code into engaging visual stories with smooth animations, perfect for tutorials, presentations, and educational content.
 
@@ -263,8 +263,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 This project was built with the help of amazing tools and communities:
 
-- **[Kiro](https://kiro.dev?utm_source=code-animator-readme)** - The AI-powered development environment that helped architect and build this application
-- **[Motion Canvas](https://motioncanvas.io?utm_source=code-animator-readme)** - The powerful animation library that makes smooth code animations possible
+- **[Kiro](https://kiro.dev?utm_source=code-animator-github)** - The AI-powered development environment that helped architect and build this application
+- **[Motion Canvas](https://motioncanvas.io?utm_source=code-animator-github)** - The powerful animation library that makes smooth code animations possible
 
 ---
 
