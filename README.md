@@ -1,6 +1,6 @@
 # Code Animator
 
-> Built as a part of the [Kiro hackathon](https://kiro.dev).
+> Built as a part of the [Kiro hackathon](https://kiro.dev?utm_source=code-animator-readme).
 
 A powerful web application for creating animated presentations of code snippets. Transform your code into engaging visual stories with smooth animations, perfect for tutorials, presentations, and educational content.
 
