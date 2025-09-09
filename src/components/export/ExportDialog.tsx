@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { VideoSettings } from "../../types";
 import { ExportProgress } from "../../services/videoExport";
 import { VideoPreview } from "./VideoPreview";
+import { trackEvent } from "../../lib/gtag";
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -53,6 +54,11 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     if (!projectName.trim()) {
       return;
     }
+    trackEvent("export_dialog_confirm", {
+      resolution: videoSettings.resolution,
+      frameRate: videoSettings.frameRate,
+      format: videoSettings.format,
+    });
     onExport(projectName.trim(), videoSettings);
   };
 

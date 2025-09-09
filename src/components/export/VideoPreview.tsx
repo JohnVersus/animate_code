@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { trackEvent } from "../../lib/gtag";
 
 interface VideoPreviewProps {
   videoBlob: Blob;
@@ -95,6 +96,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   };
 
   const handleDownload = () => {
+    trackEvent("download_video_click", {
+      fileName,
+    });
     const link = document.createElement("a");
     link.href = videoUrl;
     link.download = fileName;

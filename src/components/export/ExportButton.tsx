@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ExportDialog } from "./ExportDialog";
 import { videoExportService, ExportProgress } from "../../services/videoExport";
 import { Slide, VideoSettings } from "../../types";
+import { trackEvent } from "../../lib/gtag";
 
 interface ExportButtonProps {
   code: string;
@@ -49,6 +50,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       return;
     }
 
+    trackEvent("export_video_click");
     setIsDialogOpen(true);
   };
 
