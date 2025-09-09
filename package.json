@@ -13,6 +13,7 @@
     "@motion-canvas/2d": "^3.17.2",
     "@motion-canvas/core": "^3.17.2",
     "@motion-canvas/ui": "^3.17.2",
+    "@next/third-parties": "^15.5.2",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-popover": "^1.1.14",
     "@radix-ui/react-select": "^2.2.5",
@@ -28,7 +29,9 @@
     "next": "14.2.5",
     "react": "^18",
     "react-dom": "^18",
+    "react-github-btn": "^1.4.0",
     "react-resizable-panels": "^3.0.4",
+    "react-twitter-embed": "^4.0.4",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
