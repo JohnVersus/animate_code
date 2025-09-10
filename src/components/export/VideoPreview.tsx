@@ -8,12 +8,14 @@ interface VideoPreviewProps {
   videoBlob: Blob;
   fileName: string;
   onClose: () => void;
+  onMetadataLoad: (dimensions: { width: number; height: number }) => void;
 }
 
 export const VideoPreview: React.FC<VideoPreviewProps> = ({
   videoBlob,
   fileName,
   onClose,
+  onMetadataLoad,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoUrl, setVideoUrl] = useState<string>("");
@@ -43,6 +45,12 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     if (!video) return;
 
     const handleLoadedMetadata = () => {
+      if (video) {
+        onMetadataLoad({
+          width: video.videoWidth,
+          height: video.videoHeight,
+        });
+      }
       // This will be triggered when the browser has enough data to determine the duration
       // For some formats (like webm), we need to seek to the end to get the duration
       video.currentTime = 1e101;
