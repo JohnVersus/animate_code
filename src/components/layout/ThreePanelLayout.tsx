@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Slide, AnimationState } from "@/types";
+import { Slide, AnimationState, Project, VideoSettings } from "@/types";
 import { updateLineRanges } from "@/lib/line-numbers";
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { ExportButton } from "@/components/export";
+import { ExportButton, ExportDialog } from "@/components/export";
+import { videoExportService, ExportProgress } from "../../services/videoExport";
+import { trackEvent } from "../../lib/gtag";
 import { CodeManager } from "@/components/project";
 import {
   previewViewport,
@@ -177,6 +179,104 @@ function createCalculator() {
     setCurrentProjectName(projectName);
   };
 
+  // State and logic for Export Dialog
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [exportProgress, setExportProgress] = useState<
+    ExportProgress | undefined
+  >();
+  const [exportedVideo, setExportedVideo] = useState<
+    | {
+        blob: Blob;
+        fileName: string;
+      }
+    | undefined
+  >(undefined);
+
+  const handleExportClick = () => {
+    if (!code.trim()) {
+      alert("Please add some code before exporting");
+      return;
+    }
+    if (slides.length === 0) {
+      alert("Please create at least one slide before exporting");
+      return;
+    }
+    trackEvent("export_video_click");
+    setIsDialogOpen(true);
+  };
+
+  const handleExport = useCallback(
+    async (exportProjectName: string, videoSettings: VideoSettings) => {
+      try {
+        setExportProgress({
+          phase: "preparing",
+          progress: 0,
+          message: "Starting export...",
+        });
+        setExportedVideo(undefined);
+        const videoBlob = await videoExportService.exportVideo(
+          code,
+          language,
+          slides,
+          {
+            videoSettings,
+            projectName: exportProjectName,
+          },
+          (progress) => {
+            setExportProgress(progress);
+          },
+          globalSpeed
+        );
+        const fileName = `${exportProjectName}.${videoSettings.format}`;
+        setExportedVideo({
+          blob: videoBlob,
+          fileName,
+        });
+        setExportProgress({
+          phase: "complete",
+          progress: 1,
+          message: `Video exported successfully! You can now preview and download it.`,
+        });
+      } catch (error) {
+        console.error("Export failed:", error);
+        setExportProgress({
+          phase: "error",
+          progress: 0,
+          message: error instanceof Error ? error.message : "Export failed",
+          error: error
+            ? {
+                type: "EXPORT_ERROR" as any,
+                message: (error as any).message,
+                details: error,
+                timestamp: new Date(),
+              }
+            : undefined,
+        });
+      }
+    },
+    [code, language, slides, globalSpeed]
+  );
+
+  const handleCancel = useCallback(() => {
+    videoExportService.cancelExport();
+    setExportProgress({
+      phase: "error",
+      progress: 0,
+      message: "Export cancelled by user",
+    });
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsDialogOpen(false);
+    setTimeout(() => {
+      setExportProgress(undefined);
+      setExportedVideo(undefined);
+    }, 300);
+  }, []);
+
+  const isExporting = videoExportService.isExporting();
+  const canExport = code.trim() && slides.length > 0;
+
   const handleLineNumberToggle = useCallback(
     (lineNumber: number) => {
       if (
@@ -234,6 +334,15 @@ function createCalculator() {
 
   return (
     <div className="h-full bg-gray-100">
+      <ExportDialog
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+        onExport={handleExport}
+        onCancel={handleCancel}
+        exportProgress={exportProgress}
+        defaultProjectName={currentProjectName || "code-animation"}
+        exportedVideo={exportedVideo}
+      />
       <ResizablePanelGroup direction="horizontal" className="h-full">
         {/* Left Panel - Code Projects */}
         <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
@@ -307,12 +416,10 @@ function createCalculator() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <ExportButton
-                      code={code}
-                      language={language}
-                      slides={slides}
-                      projectName={currentProjectName || "code-animation"}
+                      onClick={handleExportClick}
+                      disabled={!canExport}
+                      isExporting={isExporting}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
-                      globalSpeed={globalSpeed}
                     />
                   </div>
                 </div>

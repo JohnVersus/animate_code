@@ -34,6 +34,7 @@ interface CodeManagerProps {
   currentLanguage?: string;
   currentSlides?: Slide[];
   onAutoSave?: (projectName: string) => void;
+  onProjectSelect?: (project: Project) => void;
 }
 
 export function CodeManager({
@@ -42,6 +43,7 @@ export function CodeManager({
   currentLanguage = "javascript",
   currentSlides = [],
   onAutoSave,
+  onProjectSelect,
 }: CodeManagerProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -127,11 +129,15 @@ export function CodeManager({
       setSelectedProject(project.id);
       onCodeSelect(project.code, project.language, project.slides);
 
+      if (onProjectSelect) {
+        onProjectSelect(project);
+      }
+
       // Save to localStorage for persistence
       localStorageService.setLastSelectedProject(project.id);
       localStorageService.addToRecentProjects(project.id);
     },
-    [onCodeSelect]
+    [onCodeSelect, onProjectSelect]
   );
 
   // Auto-select last selected project after projects are loaded

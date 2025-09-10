@@ -54,6 +54,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     height: number;
   } | null>(null);
 
+  useEffect(() => {
+    if (defaultProjectName) {
+      setProjectName(defaultProjectName);
+    }
+  }, [defaultProjectName]);
+
   const handleExport = () => {
     if (!projectName.trim()) {
       return;
