@@ -5,6 +5,10 @@ import { canvasRenderer } from "../../services/canvasRenderer";
 import { animationEngine } from "../../services/animationEngine";
 import { themeExtractor } from "../../services/themeExtractor";
 import { Slide } from "../../types";
+import {
+  AnimationViewport,
+  previewViewport,
+} from "../../services/viewportConfig";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -26,6 +30,7 @@ interface AnimationPreviewProps {
   onCurrentSlideChange?: (slideIndex: number) => void;
   globalSpeed?: number;
   onGlobalSpeedChange?: (speed: number) => void;
+  viewport?: AnimationViewport;
 }
 
 export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
@@ -38,6 +43,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
   onCurrentSlideChange,
   globalSpeed = 1.0,
   onGlobalSpeedChange,
+  viewport = previewViewport,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -123,7 +129,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
           );
           canvasRenderer.renderAnimationFrame(
             canvasRef.current,
-            animationFrame
+            animationFrame,
+            viewport
           );
         }
       } else if (slides.length > 0) {
@@ -140,12 +147,19 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
             canvasRef.current,
             code,
             language,
-            windowedLineRanges
+            windowedLineRanges,
+            viewport
           );
         }
       } else {
         // Show all code if no slides
-        canvasRenderer.renderCodeToCanvas(canvasRef.current, code, language);
+        canvasRenderer.renderCodeToCanvas(
+          canvasRef.current,
+          code,
+          language,
+          undefined,
+          viewport
+        );
       }
     } catch (error) {
       console.error("Failed to render code to canvas:", error);
@@ -161,6 +175,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
     themeReady,
     animationProgress,
     globalSpeed,
+    viewport,
   ]);
 
   // Calculate total duration when slides change (convert from milliseconds to seconds and apply global speed)
@@ -403,9 +418,22 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
           border: none;
         }
       `}</style>
-      {/* Static Canvas Preview */}
-      {previewMode === "static" && (
-        <div className="w-full h-full flex items-center-safe justify-center pt-2 pb-32 px-4">
+      {/* Canvas Preview */}
+      <div className="w-full h-full flex items-center justify-center pt-2 pb-32 px-4">
+        {viewport.getConfig().verticalAlignment === "top" ? (
+          <div
+            style={viewport.getResponsiveContainerStyles()}
+            className="flex items-center justify-center"
+          >
+            <canvas
+              ref={canvasRef}
+              className="w-full h-full border border-gray-700 rounded-lg shadow-lg"
+              style={{
+                backgroundColor: canvasBackgroundColor,
+              }}
+            />
+          </div>
+        ) : (
           <div className="w-full max-w-4xl aspect-video flex items-center justify-center">
             <canvas
               ref={canvasRef}
@@ -415,23 +443,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
               }}
             />
           </div>
-        </div>
-      )}
-
-      {/* Animated Preview */}
-      {previewMode === "animated" && (
-        <div className="w-full h-full flex items-center justify-center pt-2 pb-32 px-4">
-          <div className="w-full max-w-4xl aspect-video flex items-center justify-center">
-            <canvas
-              ref={canvasRef}
-              className="max-w-full max-h-full border border-gray-700 rounded-lg shadow-lg"
-              style={{
-                backgroundColor: canvasBackgroundColor,
-              }}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Loading overlay */}
       {isRendering && (

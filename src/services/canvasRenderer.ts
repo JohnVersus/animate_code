@@ -2,7 +2,11 @@ import { syntaxHighlightingService } from "./syntaxHighlighting";
 import { themeExtractor, ThemeColorScheme } from "./themeExtractor";
 import { LineRange } from "../types";
 import { MotionCanvasAnimationEngine } from "./animationEngine";
-import { animationViewport, ViewportConfig } from "./viewportConfig";
+import {
+  AnimationViewport,
+  animationViewport,
+  ViewportConfig,
+} from "./viewportConfig";
 
 export interface CanvasRendererService {
   renderCodeToCanvas(
@@ -77,7 +81,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     canvas: HTMLCanvasElement,
     code: string,
     language: string,
-    lineRanges?: LineRange[]
+    lineRanges?: LineRange[],
+    viewport: AnimationViewport = animationViewport
   ): void {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -86,9 +91,9 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     const theme = this.getThemeColors();
 
     // Use fixed viewport dimensions
-    const { width, height } = animationViewport.calculateDimensions();
-    const fontSettings = animationViewport.getFontSettings();
-    const layoutSettings = animationViewport.getLayoutSettings();
+    const { width, height } = viewport.calculateDimensions();
+    const fontSettings = viewport.getFontSettings();
+    const layoutSettings = viewport.getLayoutSettings();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
     // Set the actual canvas size in memory (scaled for high DPI)
@@ -254,7 +259,11 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     return uniqueLines;
   }
 
-  renderAnimationFrame(canvas: HTMLCanvasElement, animationFrame: any): void {
+  renderAnimationFrame(
+    canvas: HTMLCanvasElement,
+    animationFrame: any,
+    viewport: AnimationViewport = animationViewport
+  ): void {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -262,9 +271,9 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     const theme = this.getThemeColors();
 
     // Use fixed viewport dimensions
-    const { width, height } = animationViewport.calculateDimensions();
-    const fontSettings = animationViewport.getFontSettings();
-    const layoutSettings = animationViewport.getLayoutSettings();
+    const { width, height } = viewport.calculateDimensions();
+    const fontSettings = viewport.getFontSettings();
+    const layoutSettings = viewport.getLayoutSettings();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
     // Set the actual canvas size in memory (scaled for high DPI)

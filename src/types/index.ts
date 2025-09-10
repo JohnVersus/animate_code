@@ -17,7 +17,7 @@ export interface Slide {
 }
 
 export interface VideoSettings {
-  resolution: "720p" | "1080p" | "4K";
+  resolution: "720p" | "1080p" | "4K" | "1080p-portrait";
   frameRate: 30 | 60;
   format: "mp4" | "webm" | "gif";
 }

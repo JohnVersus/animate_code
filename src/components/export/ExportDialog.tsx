@@ -164,7 +164,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                   <label className="text-sm text-gray-600">Resolution</label>
                   <Select
                     value={videoSettings.resolution}
-                    onValueChange={(value: "720p" | "1080p" | "4K") =>
+                    onValueChange={(
+                      value: "720p" | "1080p" | "4K" | "1080p-portrait"
+                    ) =>
                       setVideoSettings({ ...videoSettings, resolution: value })
                     }
                     disabled={isExporting}
@@ -176,6 +178,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                       <SelectItem value="720p">720p (1280×720)</SelectItem>
                       <SelectItem value="1080p">1080p (1920×1080)</SelectItem>
                       <SelectItem value="4K">4K (3840×2160)</SelectItem>
+                      <SelectItem value="1080p-portrait">
+                        Portrait/Shorts (1080x1920)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
