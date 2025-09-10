@@ -134,30 +134,33 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
           );
         }
       } else if (slides.length > 0) {
-        // For static mode, show current slide with scrolling window applied
+        // For static mode, show current slide with correct line numbers
         const currentSlideData = slides[currentSlide];
         if (currentSlideData) {
-          // Get the windowed line ranges for this slide
-          const windowedLineRanges = animationEngine.getWindowedLineRanges(
+          const visibleLines = animationEngine.getVisibleLinesForSlide(
             currentSlideData,
             code
           );
-
           canvasRenderer.renderCodeToCanvas(
             canvasRef.current,
             code,
             language,
-            windowedLineRanges,
+            visibleLines,
             viewport
           );
         }
       } else {
-        // Show all code if no slides
+        // Show all code if no slides, with sequential line numbers
+        const allLines = code.split("\n").map((line, index) => ({
+          displayLineNumber: index + 1,
+          actualLineNumber: index + 1,
+          content: line,
+        }));
         canvasRenderer.renderCodeToCanvas(
           canvasRef.current,
           code,
           language,
-          undefined,
+          allLines,
           viewport
         );
       }

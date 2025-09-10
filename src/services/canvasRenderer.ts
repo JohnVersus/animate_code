@@ -13,7 +13,12 @@ export interface CanvasRendererService {
     canvas: HTMLCanvasElement,
     code: string,
     language: string,
-    lineRanges?: LineRange[]
+    visibleLines?: {
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+    }[],
+    viewport?: AnimationViewport
   ): void;
   renderAnimationFrame(canvas: HTMLCanvasElement, animationFrame: any): void;
   getCanvasSize(code: string): { width: number; height: number };
@@ -81,7 +86,11 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     canvas: HTMLCanvasElement,
     code: string,
     language: string,
-    lineRanges?: LineRange[],
+    visibleLinesProp?: {
+      displayLineNumber: number;
+      actualLineNumber: number;
+      content: string;
+    }[],
     viewport: AnimationViewport = animationViewport
   ): void {
     const ctx = canvas.getContext("2d");
@@ -107,10 +116,8 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     // Scale the context to match device pixel ratio
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
-    // Clear canvas with theme background color - ensure dark background
-    const backgroundColor =
-      theme.background === "#111827" ? "#111827" : "#111827"; // Force dark background
-    console.log("Canvas background color being used:", backgroundColor);
+    // Clear canvas with theme background color
+    const backgroundColor = "#111827"; // Force dark background
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);
 
@@ -122,43 +129,18 @@ export class CodeCanvasRenderer implements CanvasRendererService {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
 
-    // Debug: Log the theme colors being used
-    console.log("Canvas renderer using theme:", {
-      background: theme.background,
-      text: theme.text,
-      lineNumber: theme.lineNumber,
-      sampleTokens: {
-        keyword: theme.tokens.keyword,
-        string: theme.tokens.string,
-        function: theme.tokens.function,
-      },
-    });
-
-    // Get lines to render with sequential numbering
-    const lines = code.split("\n");
-    let visibleLines: {
-      displayLineNumber: number;
-      actualLineNumber: number;
-      content: string;
-    }[];
-
-    if (lineRanges) {
-      // Use animation engine to get sequential numbering for line ranges
-      const engine = new MotionCanvasAnimationEngine();
-      visibleLines = engine.getVisibleLinesSequential(code, lineRanges);
-    } else {
-      // Show all lines with sequential numbering (1, 2, 3...)
-      visibleLines = lines.map((line, index) => ({
+    // Use provided visible lines or generate them for the whole code
+    const visibleLines =
+      visibleLinesProp ||
+      code.split("\n").map((line, index) => ({
         displayLineNumber: index + 1,
         actualLineNumber: index + 1,
         content: line,
       }));
-    }
 
-    // Render each line using display line numbers (now with scrolling support)
+    // Render each line
     let yOffset = layoutSettings.padding;
     for (const { displayLineNumber, content } of visibleLines) {
-      // Only render lines that are within the visible area (scrolling window)
       if (
         yOffset >= -fontSettings.lineHeight &&
         yOffset < height + fontSettings.lineHeight

@@ -5,6 +5,23 @@ import {
   ScrollAnimation,
 } from "./viewportConfig";
 
+/**
+ * Checks if a sorted array of lines has contiguous line numbers.
+ * @param lines - A sorted array of line objects, each with a `lineNumber` property.
+ * @returns `true` if the line numbers are contiguous, `false` otherwise.
+ */
+function areLineNumbersContiguous(lines: { lineNumber: number }[]): boolean {
+  if (lines.length <= 1) {
+    return true;
+  }
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].lineNumber !== lines[i - 1].lineNumber + 1) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Typewriter animation configuration
 export interface TypewriterAnimationConfig {
   characterDelay: number; // milliseconds between characters
@@ -201,9 +218,10 @@ export class ScrollingRenderer {
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
-    // Always use sequential numbering for display (1, 2, 3...) regardless of actual line numbers
+    // Decide on numbering strategy based on whether lines are contiguous
+    const isContiguous = areLineNumbersContiguous(filteredLines);
     const visibleLines = filteredLines.map((line, index) => ({
-      displayLineNumber: index + 1,
+      displayLineNumber: isContiguous ? line.lineNumber : index + 1,
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));
@@ -269,9 +287,10 @@ export class ScrollingRenderer {
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
-    // Always use sequential numbering for display (1, 2, 3...) regardless of actual line numbers
+    // Decide on numbering strategy based on whether lines are contiguous
+    const isContiguous = areLineNumbersContiguous(filteredLines);
     const visibleLines = filteredLines.map((line, index) => ({
-      displayLineNumber: index + 1,
+      displayLineNumber: isContiguous ? line.lineNumber : index + 1,
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));
@@ -362,6 +381,15 @@ export interface AnimationEngineService {
   getScrollingRenderer(): ScrollingRenderer;
   // Method to get windowed line ranges for static preview
   getWindowedLineRanges(slide: Slide, code: string): LineRange[];
+  // New method to get visible lines for a slide with correct display numbers
+  getVisibleLinesForSlide(
+    slide: Slide,
+    code: string
+  ): {
+    displayLineNumber: number;
+    actualLineNumber: number;
+    content: string;
+  }[];
 }
 
 export class MotionCanvasAnimationEngine implements AnimationEngineService {
@@ -1056,6 +1084,29 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       start: line.actualLineNumber,
       end: line.actualLineNumber,
     }));
+  }
+
+  /**
+   * Get visible lines for a slide with correct display numbers, respecting the scrolling window.
+   * This is used for rendering static previews.
+   */
+  getVisibleLinesForSlide(
+    slide: Slide,
+    code: string
+  ): {
+    displayLineNumber: number;
+    actualLineNumber: number;
+    content: string;
+  }[] {
+    const slideLines = this.getSlideLines(slide, code);
+
+    // Use the scrolling renderer to get the windowed and correctly numbered lines
+    const scrollingResult = this.scrollingRenderer.renderWithScrolling(
+      slideLines,
+      slideLines.map((line) => line.lineNumber)
+    );
+
+    return scrollingResult.visibleLines;
   }
 
   /**
