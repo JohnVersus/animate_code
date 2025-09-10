@@ -25,6 +25,8 @@ import {
   Search,
 } from "lucide-react";
 import { clearDatabase } from "@/utils/dbUtils";
+import GitHubButton from "react-github-btn";
+import { TwitterFollowButton } from "react-twitter-embed";
 
 interface CodeManagerProps {
   onCodeSelect: (code: string, language: string, slides: Slide[]) => void;
@@ -564,7 +566,25 @@ function example() {
           ))
         )}
       </div>
-      <div className="p-2 flex justify-center">
+      <div className="p-2 flex flex-col gap-2 items-center">
+        {/* <div className="flex flow-col gap-2">
+          <GitHubButton
+            href="https://github.com/JohnVersus/animate_code"
+            data-color-scheme="no-preference: light; light: light; dark: dark;"
+            data-size="large"
+            data-show-count="true"
+            aria-label="Star JohnVersus/animate_code on GitHub"
+          >
+            Star
+          </GitHubButton> */}
+        {/* <TwitterFollowButton
+            onLoad={function noRefCheck() {}}
+            options={{
+              size: "large",
+            }}
+            screenName="johnvs_nagendra"
+          /> */}
+        {/* </div> */}
         <a
           href="https://www.producthunt.com/products/code-animator?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-code&#0045;animator"
           target="_blank"
