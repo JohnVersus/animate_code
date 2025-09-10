@@ -6,20 +6,27 @@ import {
 } from "./viewportConfig";
 
 /**
- * Checks if a sorted array of lines has contiguous line numbers.
+ * Decides whether to use actual line numbers or sequential numbering (1, 2, 3...).
+ * Uses a density-based heuristic. If the visible lines are "dense" enough within their range,
+ * it returns true, indicating that actual line numbers should be used.
  * @param lines - A sorted array of line objects, each with a `lineNumber` property.
- * @returns `true` if the line numbers are contiguous, `false` otherwise.
+ * @returns `true` if actual line numbers should be used, `false` otherwise.
  */
-function areLineNumbersContiguous(lines: { lineNumber: number }[]): boolean {
+function shouldUseActualLineNumbers(lines: { lineNumber: number }[]): boolean {
   if (lines.length <= 1) {
-    return true;
+    return true; // Single lines or empty arrays should use their actual number
   }
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].lineNumber !== lines[i - 1].lineNumber + 1) {
-      return false;
-    }
-  }
-  return true;
+
+  const minLine = lines[0].lineNumber;
+  const maxLine = lines[lines.length - 1].lineNumber;
+  const lineRange = maxLine - minLine + 1;
+
+  // If the number of lines is very close to the span of the range, they are dense.
+  // This handles cases like `1-20, 23` where there's a small gap.
+  // A density of 0.8 means that at least 80% of the lines in the range are present.
+  const density = lines.length / lineRange;
+  console.log({ density, lines: lines.length, lineRange });
+  return density >= 0.8;
 }
 
 // Typewriter animation configuration
@@ -218,10 +225,10 @@ export class ScrollingRenderer {
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
-    // Decide on numbering strategy based on whether lines are contiguous
-    const isContiguous = areLineNumbersContiguous(filteredLines);
+    // Decide on numbering strategy based on line density
+    const useActualNumbers = shouldUseActualLineNumbers(filteredLines);
     const visibleLines = filteredLines.map((line, index) => ({
-      displayLineNumber: isContiguous ? line.lineNumber : index + 1,
+      displayLineNumber: useActualNumbers ? line.lineNumber : index + 1,
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));
@@ -287,10 +294,10 @@ export class ScrollingRenderer {
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
-    // Decide on numbering strategy based on whether lines are contiguous
-    const isContiguous = areLineNumbersContiguous(filteredLines);
+    // Decide on numbering strategy based on line density
+    const useActualNumbers = shouldUseActualLineNumbers(filteredLines);
     const visibleLines = filteredLines.map((line, index) => ({
-      displayLineNumber: isContiguous ? line.lineNumber : index + 1,
+      displayLineNumber: useActualNumbers ? line.lineNumber : index + 1,
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));
@@ -492,6 +499,9 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     slides: Slide[],
     globalSpeed: number = 1.0
   ) {
+    // Reset the scrolling renderer to ensure a clean state for each new animation
+    this.scrollingRenderer.reset();
+
     // Return animation configuration with slide transitions
     const animationSteps = this.calculateAnimationSteps(
       code,
