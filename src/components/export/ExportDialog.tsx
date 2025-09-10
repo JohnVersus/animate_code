@@ -126,14 +126,18 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     exportProgress.error?.message.toLowerCase().includes("out of memory");
 
   const getModalWidthClass = () => {
+    const isGif = exportedVideo?.fileName.toLowerCase().endsWith(".gif");
+
     if (!exportedVideo) {
       return "sm:max-w-md";
     }
+
     if (videoDimensions && videoDimensions.height > videoDimensions.width) {
-      // Portrait video
-      return "sm:max-w-md";
+      // Portrait video or GIF
+      return isGif ? "sm:max-w-lg" : "sm:max-w-md";
     }
-    // Landscape or square video
+
+    // Landscape or square video or GIF
     return "sm:max-w-4xl";
   };
 

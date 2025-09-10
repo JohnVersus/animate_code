@@ -126,6 +126,13 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const handleGifLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    onMetadataLoad({
+      width: e.currentTarget.naturalWidth,
+      height: e.currentTarget.naturalHeight,
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Media Player - Video or GIF */}
@@ -135,6 +142,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
             src={videoUrl}
             alt="Generated GIF"
             className="w-full h-auto max-h-[48rem] mx-auto"
+            onLoad={handleGifLoad}
           />
         ) : (
           <video
@@ -214,11 +222,11 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       )}
 
       {/* GIF Info - Show for GIF files */}
-      {isGif && (
+      {/* {isGif && (
         <div className="text-center text-sm text-gray-600 py-2">
           GIF animation will loop automatically
         </div>
-      )}
+      )} */}
 
       {/* Action Buttons */}
       <div className="flex justify-between items-center pt-4 border-t">
