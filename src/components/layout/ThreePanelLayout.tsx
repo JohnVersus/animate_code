@@ -11,6 +11,11 @@ import {
 } from "@/components/ui/resizable";
 import { ExportButton } from "@/components/export";
 import { CodeManager } from "@/components/project";
+import {
+  previewViewport,
+  portraitPreviewViewport,
+} from "@/services/viewportConfig";
+import { Button } from "@/components/ui/button";
 
 // Dynamically import components to avoid SSR issues
 const CodeEditor = dynamic(
@@ -86,6 +91,11 @@ function createCalculator() {
 
   // State for global animation speed
   const [globalSpeed, setGlobalSpeed] = useState<number>(1.0);
+
+  // State for preview mode
+  const [previewMode, setPreviewMode] = useState<"landscape" | "portrait">(
+    "landscape"
+  );
 
   const handlePlayStateChange = (playing: boolean) => {
     setAnimationState((prev) => ({ ...prev, isPlaying: playing }));
@@ -278,18 +288,33 @@ function createCalculator() {
             {/* Animation Preview Section */}
             <ResizablePanel defaultSize={70} minSize={40} maxSize={85}>
               <div className="bg-white flex flex-col h-full border-b border-gray-300">
-                <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    Animation Preview
-                  </h2>
-                  <ExportButton
-                    code={code}
-                    language={language}
-                    slides={slides}
-                    projectName={currentProjectName || "code-animation"}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    globalSpeed={globalSpeed}
-                  />
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between space-x-2">
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      Animation Preview
+                    </h2>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setPreviewMode(
+                          previewMode === "landscape" ? "portrait" : "landscape"
+                        )
+                      }
+                    >
+                      {previewMode === "landscape" ? "Portrait" : "Landscape"}
+                    </Button>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <ExportButton
+                      code={code}
+                      language={language}
+                      slides={slides}
+                      projectName={currentProjectName || "code-animation"}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      globalSpeed={globalSpeed}
+                    />
+                  </div>
                 </div>
                 <div className="flex-1 p-4">
                   <div className="w-full h-full max-w-4xl mx-auto">
@@ -303,6 +328,11 @@ function createCalculator() {
                       onCurrentSlideChange={handleSlideChange}
                       globalSpeed={globalSpeed}
                       onGlobalSpeedChange={setGlobalSpeed}
+                      viewport={
+                        previewMode === "landscape"
+                          ? previewViewport
+                          : portraitPreviewViewport
+                      }
                     />
                   </div>
                 </div>
