@@ -2,15 +2,23 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Slide, AnimationState } from "@/types";
+import { Slide, AnimationState, Project, VideoSettings } from "@/types";
 import { updateLineRanges } from "@/lib/line-numbers";
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { ExportButton } from "@/components/export";
+import { ExportButton, ExportDialog } from "@/components/export";
+import { videoExportService, ExportProgress } from "../../services/videoExport";
+import { trackEvent } from "../../lib/gtag";
 import { CodeManager } from "@/components/project";
+import {
+  previewViewport,
+  portraitPreviewViewport,
+} from "@/services/viewportConfig";
+import { Button } from "@/components/ui/button";
+import { RectangleHorizontal, RectangleVertical } from "lucide-react";
 
 // Dynamically import components to avoid SSR issues
 const CodeEditor = dynamic(
@@ -86,6 +94,11 @@ function createCalculator() {
 
   // State for global animation speed
   const [globalSpeed, setGlobalSpeed] = useState<number>(1.0);
+
+  // State for preview mode
+  const [previewMode, setPreviewMode] = useState<"landscape" | "portrait">(
+    "landscape"
+  );
 
   const handlePlayStateChange = (playing: boolean) => {
     setAnimationState((prev) => ({ ...prev, isPlaying: playing }));
@@ -167,6 +180,104 @@ function createCalculator() {
     setCurrentProjectName(projectName);
   };
 
+  // State and logic for Export Dialog
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [exportProgress, setExportProgress] = useState<
+    ExportProgress | undefined
+  >();
+  const [exportedVideo, setExportedVideo] = useState<
+    | {
+        blob: Blob;
+        fileName: string;
+      }
+    | undefined
+  >(undefined);
+
+  const handleExportClick = () => {
+    if (!code.trim()) {
+      alert("Please add some code before exporting");
+      return;
+    }
+    if (slides.length === 0) {
+      alert("Please create at least one slide before exporting");
+      return;
+    }
+    trackEvent("export_video_click");
+    setIsDialogOpen(true);
+  };
+
+  const handleExport = useCallback(
+    async (exportProjectName: string, videoSettings: VideoSettings) => {
+      try {
+        setExportProgress({
+          phase: "preparing",
+          progress: 0,
+          message: "Starting export...",
+        });
+        setExportedVideo(undefined);
+        const videoBlob = await videoExportService.exportVideo(
+          code,
+          language,
+          slides,
+          {
+            videoSettings,
+            projectName: exportProjectName,
+          },
+          (progress) => {
+            setExportProgress(progress);
+          },
+          globalSpeed
+        );
+        const fileName = `${exportProjectName}.${videoSettings.format}`;
+        setExportedVideo({
+          blob: videoBlob,
+          fileName,
+        });
+        setExportProgress({
+          phase: "complete",
+          progress: 1,
+          message: `Video exported successfully! You can now preview and download it.`,
+        });
+      } catch (error) {
+        console.error("Export failed:", error);
+        setExportProgress({
+          phase: "error",
+          progress: 0,
+          message: error instanceof Error ? error.message : "Export failed",
+          error: error
+            ? {
+                type: "EXPORT_ERROR" as any,
+                message: (error as any).message,
+                details: error,
+                timestamp: new Date(),
+              }
+            : undefined,
+        });
+      }
+    },
+    [code, language, slides, globalSpeed]
+  );
+
+  const handleCancel = useCallback(() => {
+    videoExportService.cancelExport();
+    setExportProgress({
+      phase: "error",
+      progress: 0,
+      message: "Export cancelled by user",
+    });
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsDialogOpen(false);
+    setTimeout(() => {
+      setExportProgress(undefined);
+      setExportedVideo(undefined);
+    }, 300);
+  }, []);
+
+  const isExporting = videoExportService.isExporting();
+  const canExport = code.trim() && slides.length > 0;
+
   const handleLineNumberToggle = useCallback(
     (lineNumber: number) => {
       if (
@@ -224,6 +335,15 @@ function createCalculator() {
 
   return (
     <div className="h-full bg-gray-100">
+      <ExportDialog
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+        onExport={handleExport}
+        onCancel={handleCancel}
+        exportProgress={exportProgress}
+        defaultProjectName={currentProjectName || "code-animation"}
+        exportedVideo={exportedVideo}
+      />
       <ResizablePanelGroup direction="horizontal" className="h-full">
         {/* Left Panel - Code Projects */}
         <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
@@ -278,18 +398,36 @@ function createCalculator() {
             {/* Animation Preview Section */}
             <ResizablePanel defaultSize={70} minSize={40} maxSize={85}>
               <div className="bg-white flex flex-col h-full border-b border-gray-300">
-                <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    Animation Preview
-                  </h2>
-                  <ExportButton
-                    code={code}
-                    language={language}
-                    slides={slides}
-                    projectName={currentProjectName || "code-animation"}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    globalSpeed={globalSpeed}
-                  />
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between space-x-2">
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      Animation Preview
+                    </h2>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setPreviewMode(
+                          previewMode === "landscape" ? "portrait" : "landscape"
+                        )
+                      }
+                    >
+                      {previewMode === "landscape" ? "Portrait" : "Landscape"}
+                      {previewMode === "landscape" ? (
+                        <RectangleVertical />
+                      ) : (
+                        <RectangleHorizontal />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <ExportButton
+                      onClick={handleExportClick}
+                      disabled={!canExport}
+                      isExporting={isExporting}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    />
+                  </div>
                 </div>
                 <div className="flex-1 p-4">
                   <div className="w-full h-full max-w-4xl mx-auto">
@@ -303,6 +441,11 @@ function createCalculator() {
                       onCurrentSlideChange={handleSlideChange}
                       globalSpeed={globalSpeed}
                       onGlobalSpeedChange={setGlobalSpeed}
+                      viewport={
+                        previewMode === "landscape"
+                          ? previewViewport
+                          : portraitPreviewViewport
+                      }
                     />
                   </div>
                 </div>

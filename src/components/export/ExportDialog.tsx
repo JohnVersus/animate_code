@@ -49,6 +49,16 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     frameRate: 30,
     format: "mp4",
   });
+  const [videoDimensions, setVideoDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (defaultProjectName) {
+      setProjectName(defaultProjectName);
+    }
+  }, [defaultProjectName]);
 
   const handleExport = () => {
     if (!projectName.trim()) {
@@ -121,14 +131,26 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     exportProgress?.phase === "error" &&
     exportProgress.error?.message.toLowerCase().includes("out of memory");
 
+  const getModalWidthClass = () => {
+    const isGif = exportedVideo?.fileName.toLowerCase().endsWith(".gif");
+
+    if (!exportedVideo) {
+      return "sm:max-w-md";
+    }
+
+    if (videoDimensions && videoDimensions.height > videoDimensions.width) {
+      // Portrait video or GIF
+      return isGif ? "sm:max-w-lg" : "sm:max-w-md";
+    }
+
+    // Landscape or square video or GIF
+    return "sm:max-w-4xl";
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className={`${
-          exportedVideo
-            ? "sm:max-w-4xl max-h-[90vh] overflow-y-auto"
-            : "sm:max-w-md"
-        }`}
+        className={`${getModalWidthClass()} max-h-[90vh] overflow-y-auto`}
       >
         <DialogHeader>
           <DialogTitle>Export Video</DialogTitle>
@@ -141,6 +163,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               videoBlob={exportedVideo.blob}
               fileName={exportedVideo.fileName}
               onClose={onClose}
+              onMetadataLoad={setVideoDimensions}
             />
           ) : (
             <>
@@ -164,7 +187,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                   <label className="text-sm text-gray-600">Resolution</label>
                   <Select
                     value={videoSettings.resolution}
-                    onValueChange={(value: "720p" | "1080p" | "4K") =>
+                    onValueChange={(
+                      value: "720p" | "1080p" | "4K" | "1080p-portrait"
+                    ) =>
                       setVideoSettings({ ...videoSettings, resolution: value })
                     }
                     disabled={isExporting}
@@ -176,6 +201,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                       <SelectItem value="720p">720p (1280×720)</SelectItem>
                       <SelectItem value="1080p">1080p (1920×1080)</SelectItem>
                       <SelectItem value="4K">4K (3840×2160)</SelectItem>
+                      <SelectItem value="1080p-portrait">
+                        Portrait (1080x1920)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

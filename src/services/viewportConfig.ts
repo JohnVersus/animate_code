@@ -12,6 +12,7 @@ export interface ViewportConfig {
   padding: number;
   lineNumberWidth: number;
   maxVisibleLines: number;
+  verticalAlignment?: "top" | "center";
 }
 
 export interface ScrollingWindow {
@@ -54,6 +55,7 @@ export class AnimationViewport {
       padding: 30, // Top and bottom padding
       lineNumberWidth: 40, // Reverted to original width
       maxVisibleLines: 15,
+      verticalAlignment: "center",
       ...config,
     };
   }
@@ -450,6 +452,30 @@ export const exportViewport = new AnimationViewport({
   padding: 30,
   lineNumberWidth: 40,
   maxVisibleLines: 15,
+});
+
+// Portrait Preview viewport - for "shorts" preview in the UI
+export const portraitPreviewViewport = new AnimationViewport({
+  fixedWidth: 360 * 0.6,
+  fixedHeight: 640 * 0.6,
+  fontSize: 7,
+  lineHeight: 13,
+  padding: 15,
+  maxVisibleLines: 20, // Increased from 15 to 20 for portrait mode
+  verticalAlignment: "top",
+  lineNumberWidth: 10,
+});
+
+// Portrait Export viewport - for "shorts" export rendering
+export const portraitExportViewport = new AnimationViewport({
+  fixedWidth: 720,
+  fixedHeight: 1280,
+  fontSize: 12,
+  lineHeight: 18,
+  padding: 28,
+  maxVisibleLines: 20,
+  verticalAlignment: "top",
+  lineNumberWidth: 20,
 });
 
 // Default viewport (for backward compatibility) - use preview settings

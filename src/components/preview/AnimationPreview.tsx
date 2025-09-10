@@ -5,6 +5,10 @@ import { canvasRenderer } from "../../services/canvasRenderer";
 import { animationEngine } from "../../services/animationEngine";
 import { themeExtractor } from "../../services/themeExtractor";
 import { Slide } from "../../types";
+import {
+  AnimationViewport,
+  previewViewport,
+} from "../../services/viewportConfig";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -26,6 +30,7 @@ interface AnimationPreviewProps {
   onCurrentSlideChange?: (slideIndex: number) => void;
   globalSpeed?: number;
   onGlobalSpeedChange?: (speed: number) => void;
+  viewport?: AnimationViewport;
 }
 
 export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
@@ -38,6 +43,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
   onCurrentSlideChange,
   globalSpeed = 1.0,
   onGlobalSpeedChange,
+  viewport = previewViewport,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -119,33 +125,46 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
             fromSlide,
             toSlide,
             animationProgress,
-            globalSpeed
+            globalSpeed,
+            viewport
           );
           canvasRenderer.renderAnimationFrame(
             canvasRef.current,
-            animationFrame
+            animationFrame,
+            viewport
           );
         }
       } else if (slides.length > 0) {
-        // For static mode, show current slide with scrolling window applied
+        // For static mode, show current slide with correct line numbers
         const currentSlideData = slides[currentSlide];
         if (currentSlideData) {
-          // Get the windowed line ranges for this slide
-          const windowedLineRanges = animationEngine.getWindowedLineRanges(
+          const visibleLines = animationEngine.getVisibleLinesForSlide(
             currentSlideData,
-            code
+            code,
+            viewport
           );
-
           canvasRenderer.renderCodeToCanvas(
             canvasRef.current,
             code,
             language,
-            windowedLineRanges
+            visibleLines,
+            viewport
           );
         }
       } else {
-        // Show all code if no slides
-        canvasRenderer.renderCodeToCanvas(canvasRef.current, code, language);
+        // Show all code if no slides, with sequential line numbers
+        const allLines = code.split("\n").map((line, index) => ({
+          displayLineNumber: index + 1,
+          actualLineNumber: index + 1,
+          content: line,
+        }));
+        canvasRenderer.renderCodeToCanvas(
+          canvasRef.current,
+          code,
+          language,
+          allLines,
+          viewport
+        );
       }
     } catch (error) {
       console.error("Failed to render code to canvas:", error);
@@ -161,6 +180,7 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
     themeReady,
     animationProgress,
     globalSpeed,
+    viewport,
   ]);
 
   // Calculate total duration when slides change (convert from milliseconds to seconds and apply global speed)
@@ -403,9 +423,22 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
           border: none;
         }
       `}</style>
-      {/* Static Canvas Preview */}
-      {previewMode === "static" && (
-        <div className="w-full h-full flex items-center-safe justify-center pt-2 pb-32 px-4">
+      {/* Canvas Preview */}
+      <div className="w-full h-full flex items-center justify-center pt-2 pb-32 px-4">
+        {viewport.getConfig().verticalAlignment === "top" ? (
+          <div
+            style={viewport.getResponsiveContainerStyles()}
+            className="flex items-center justify-center"
+          >
+            <canvas
+              ref={canvasRef}
+              className="w-full h-full border border-gray-700 rounded-lg shadow-lg"
+              style={{
+                backgroundColor: canvasBackgroundColor,
+              }}
+            />
+          </div>
+        ) : (
           <div className="w-full max-w-4xl aspect-video flex items-center justify-center">
             <canvas
               ref={canvasRef}
@@ -415,23 +448,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
               }}
             />
           </div>
-        </div>
-      )}
-
-      {/* Animated Preview */}
-      {previewMode === "animated" && (
-        <div className="w-full h-full flex items-center justify-center pt-2 pb-32 px-4">
-          <div className="w-full max-w-4xl aspect-video flex items-center justify-center">
-            <canvas
-              ref={canvasRef}
-              className="max-w-full max-h-full border border-gray-700 rounded-lg shadow-lg"
-              style={{
-                backgroundColor: canvasBackgroundColor,
-              }}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Loading overlay */}
       {isRendering && (

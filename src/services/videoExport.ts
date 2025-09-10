@@ -1,7 +1,11 @@
 import { Slide, VideoSettings, ErrorType, AppError, LineRange } from "../types";
 import { animationEngine } from "./animationEngine";
 import { canvasRenderer } from "./canvasRenderer";
-import { exportViewport } from "./viewportConfig";
+import {
+  AnimationViewport,
+  exportViewport,
+  portraitExportViewport,
+} from "./viewportConfig";
 import GIF from "gif.js";
 import { testGifLibrary } from "../utils/gifTest";
 
@@ -98,6 +102,11 @@ class MotionCanvasVideoExportService implements VideoExportService {
 
       // Calculate video parameters
       const { frameRate, resolution } = options.videoSettings;
+      const isPortrait = resolution === "1080p-portrait";
+      const activeViewport = isPortrait
+        ? portraitExportViewport
+        : exportViewport;
+
       const totalDuration =
         slides.reduce((sum, slide) => sum + slide.duration / globalSpeed, 0) /
         1000; // Convert to seconds and apply global speed
@@ -119,7 +128,7 @@ class MotionCanvasVideoExportService implements VideoExportService {
 
       // Use the export viewport for video export sizing
       const contentSize =
-        canvasRenderer.getCanvasSizeWithViewport(exportViewport);
+        canvasRenderer.getCanvasSizeWithViewport(activeViewport);
 
       // Scale the content to fit the target resolution while maintaining aspect ratio
       const scaleX = dimensions.width / contentSize.width;
@@ -166,7 +175,9 @@ class MotionCanvasVideoExportService implements VideoExportService {
           code,
           language,
           animationSteps,
-          timeInSeconds
+          timeInSeconds,
+          activeViewport,
+          isPortrait
         );
 
         frames.push(frameData);
@@ -264,6 +275,8 @@ class MotionCanvasVideoExportService implements VideoExportService {
         return { width: 1920, height: 1080 };
       case "4K":
         return { width: 3840, height: 2160 };
+      case "1080p-portrait":
+        return { width: 1080, height: 1920 };
       default:
         return { width: 1920, height: 1080 };
     }
@@ -289,7 +302,9 @@ class MotionCanvasVideoExportService implements VideoExportService {
     code: string,
     language: string,
     animationSteps: any[],
-    timeInSeconds: number
+    timeInSeconds: number,
+    viewport: AnimationViewport,
+    isPortrait: boolean
   ): ImageData {
     // Find the current animation step for this time
     const currentStep = this.findAnimationStepAtTime(
@@ -332,7 +347,7 @@ class MotionCanvasVideoExportService implements VideoExportService {
           fromSlide,
           toSlide,
           stepProgress,
-          exportViewport
+          viewport
         );
 
         // Use the export-specific canvas renderer method
@@ -340,7 +355,7 @@ class MotionCanvasVideoExportService implements VideoExportService {
         canvasRenderer.renderAnimationFrameWithViewport(
           tempCanvas,
           animationFrame,
-          exportViewport
+          viewport
         );
 
         // Clear main canvas first
@@ -352,7 +367,14 @@ class MotionCanvasVideoExportService implements VideoExportService {
         const scaledWidth = contentSize.width * scale;
         const scaledHeight = contentSize.height * scale;
         const offsetX = (canvas.width - scaledWidth) / 2;
-        const offsetY = (canvas.height - scaledHeight) / 2;
+
+        const viewportConfig = viewport.getConfig();
+        const verticalAlignment = viewportConfig.verticalAlignment || "center";
+
+        const offsetY =
+          verticalAlignment === "top"
+            ? viewportConfig.padding
+            : (canvas.height - scaledHeight) / 2;
 
         ctx.drawImage(
           tempCanvas,
@@ -441,6 +463,9 @@ class MotionCanvasVideoExportService implements VideoExportService {
     globalSpeed: number = 1.0
   ): Promise<Blob> {
     const { frameRate, resolution } = options.videoSettings;
+    const isPortrait = resolution === "1080p-portrait";
+    const activeViewport = isPortrait ? portraitExportViewport : exportViewport;
+
     const totalDuration =
       slides.reduce((sum, slide) => sum + slide.duration / globalSpeed, 0) /
       1000;
@@ -464,7 +489,7 @@ class MotionCanvasVideoExportService implements VideoExportService {
     canvas.width = dimensions.width;
     canvas.height = dimensions.height;
     const contentSize =
-      canvasRenderer.getCanvasSizeWithViewport(exportViewport);
+      canvasRenderer.getCanvasSizeWithViewport(activeViewport);
     const scale = Math.min(
       dimensions.width / contentSize.width,
       dimensions.height / contentSize.height
@@ -515,7 +540,9 @@ class MotionCanvasVideoExportService implements VideoExportService {
         code,
         language,
         animationSteps,
-        timeInSeconds
+        timeInSeconds,
+        activeViewport,
+        isPortrait
       );
 
       const frameCanvas = document.createElement("canvas");

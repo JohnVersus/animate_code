@@ -25,6 +25,8 @@ import {
   Search,
 } from "lucide-react";
 import { clearDatabase } from "@/utils/dbUtils";
+import GitHubButton from "react-github-btn";
+import { TwitterFollowButton } from "react-twitter-embed";
 
 interface CodeManagerProps {
   onCodeSelect: (code: string, language: string, slides: Slide[]) => void;
@@ -32,6 +34,7 @@ interface CodeManagerProps {
   currentLanguage?: string;
   currentSlides?: Slide[];
   onAutoSave?: (projectName: string) => void;
+  onProjectSelect?: (project: Project) => void;
 }
 
 export function CodeManager({
@@ -40,6 +43,7 @@ export function CodeManager({
   currentLanguage = "javascript",
   currentSlides = [],
   onAutoSave,
+  onProjectSelect,
 }: CodeManagerProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -125,11 +129,15 @@ export function CodeManager({
       setSelectedProject(project.id);
       onCodeSelect(project.code, project.language, project.slides);
 
+      if (onProjectSelect) {
+        onProjectSelect(project);
+      }
+
       // Save to localStorage for persistence
       localStorageService.setLastSelectedProject(project.id);
       localStorageService.addToRecentProjects(project.id);
     },
-    [onCodeSelect]
+    [onCodeSelect, onProjectSelect]
   );
 
   // Auto-select last selected project after projects are loaded
@@ -564,7 +572,25 @@ function example() {
           ))
         )}
       </div>
-      <div className="p-2 flex justify-center">
+      <div className="p-2 flex flex-col gap-2 items-center">
+        {/* <div className="flex flow-col gap-2">
+          <GitHubButton
+            href="https://github.com/JohnVersus/animate_code"
+            data-color-scheme="no-preference: light; light: light; dark: dark;"
+            data-size="large"
+            data-show-count="true"
+            aria-label="Star JohnVersus/animate_code on GitHub"
+          >
+            Star
+          </GitHubButton> */}
+        {/* <TwitterFollowButton
+            onLoad={function noRefCheck() {}}
+            options={{
+              size: "large",
+            }}
+            screenName="johnvs_nagendra"
+          /> */}
+        {/* </div> */}
         <a
           href="https://www.producthunt.com/products/code-animator?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-code&#0045;animator"
           target="_blank"

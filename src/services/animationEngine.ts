@@ -5,6 +5,30 @@ import {
   ScrollAnimation,
 } from "./viewportConfig";
 
+/**
+ * Decides whether to use actual line numbers or sequential numbering (1, 2, 3...).
+ * Uses a density-based heuristic. If the visible lines are "dense" enough within their range,
+ * it returns true, indicating that actual line numbers should be used.
+ * @param lines - A sorted array of line objects, each with a `lineNumber` property.
+ * @returns `true` if actual line numbers should be used, `false` otherwise.
+ */
+function shouldUseActualLineNumbers(lines: { lineNumber: number }[]): boolean {
+  if (lines.length <= 1) {
+    return true; // Single lines or empty arrays should use their actual number
+  }
+
+  // Check for any gaps in the line numbers.
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].lineNumber !== lines[i - 1].lineNumber + 1) {
+      // A gap is found, so sequential numbering should be used.
+      return false;
+    }
+  }
+
+  // No gaps were found, so it's safe to use the actual line numbers.
+  return true;
+}
+
 // Typewriter animation configuration
 export interface TypewriterAnimationConfig {
   characterDelay: number; // milliseconds between characters
@@ -201,9 +225,12 @@ export class ScrollingRenderer {
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
-    // Always use sequential numbering for display (1, 2, 3...) regardless of actual line numbers
+    // Decide on numbering strategy based on line density
+    const useActualNumbers = shouldUseActualLineNumbers(filteredLines);
     const visibleLines = filteredLines.map((line, index) => ({
-      displayLineNumber: index + 1,
+      displayLineNumber: useActualNumbers
+        ? line.lineNumber
+        : window.startLine + index,
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));
@@ -269,9 +296,12 @@ export class ScrollingRenderer {
       .filter((line) => this.scrollingWindow.isLineVisible(line.lineNumber))
       .sort((a, b) => a.lineNumber - b.lineNumber);
 
-    // Always use sequential numbering for display (1, 2, 3...) regardless of actual line numbers
+    // Decide on numbering strategy based on line density
+    const useActualNumbers = shouldUseActualLineNumbers(filteredLines);
     const visibleLines = filteredLines.map((line, index) => ({
-      displayLineNumber: index + 1,
+      displayLineNumber: useActualNumbers
+        ? line.lineNumber
+        : window.startLine + index,
       actualLineNumber: line.lineNumber,
       content: line.content,
     }));
@@ -353,22 +383,36 @@ export interface AnimationEngineService {
     fromSlide: Slide | null,
     toSlide: Slide,
     progress: number,
-    globalSpeed?: number
+    globalSpeed?: number,
+    viewport?: any
   ): any;
   // New methods for typewriter configuration
   updateTypewriterConfig(config: Partial<TypewriterAnimationConfig>): void;
   getTypewriterConfig(): TypewriterAnimationConfig;
-  // Method to access scrolling renderer
-  getScrollingRenderer(): ScrollingRenderer;
   // Method to get windowed line ranges for static preview
-  getWindowedLineRanges(slide: Slide, code: string): LineRange[];
+  getWindowedLineRanges(
+    slide: Slide,
+    code: string,
+    viewport?: any
+  ): LineRange[];
+  // New method to get visible lines for a slide with correct display numbers
+  getVisibleLinesForSlide(
+    slide: Slide,
+    code: string,
+    viewport?: any
+  ): {
+    displayLineNumber: number;
+    actualLineNumber: number;
+    content: string;
+  }[];
 }
 
 export class MotionCanvasAnimationEngine implements AnimationEngineService {
   private readonly backgroundColor = "#1e1e1e";
   private readonly textColor = "#d4d4d4";
   private readonly typewriterRenderer: TypewriterRenderer;
-  private readonly scrollingRenderer: ScrollingRenderer;
+  private readonly landscapeScrollingRenderer: ScrollingRenderer;
+  private readonly portraitScrollingRenderer: ScrollingRenderer;
 
   // Syntax highlighting color scheme (VS Code Dark+ theme)
   private readonly colorScheme = {
@@ -398,13 +442,24 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       lineDelay: 200,
       sequentialOrder: true,
     });
-    this.scrollingRenderer = new ScrollingRenderer(15);
+    this.landscapeScrollingRenderer = new ScrollingRenderer(15);
+    this.portraitScrollingRenderer = new ScrollingRenderer(20);
   }
 
-  createScene(code: string, language: string) {
+  getScrollingRenderer(viewport: any = animationViewport): ScrollingRenderer {
+    return viewport.getMaxVisibleLines() === 20
+      ? this.portraitScrollingRenderer
+      : this.landscapeScrollingRenderer;
+  }
+
+  createScene(
+    code: string,
+    language: string,
+    viewport: any = animationViewport
+  ) {
     const lines = this.getCodeLines(code);
-    const fontSettings = animationViewport.getFontSettings();
-    const { width, height } = animationViewport.calculateDimensions();
+    const fontSettings = viewport.getFontSettings();
+    const { width, height } = viewport.calculateDimensions();
 
     return {
       type: "code-scene",
@@ -423,17 +478,23 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     };
   }
 
-  renderStaticFrame(code: string, language: string, lineRanges: LineRange[]) {
+  renderStaticFrame(
+    code: string,
+    language: string,
+    lineRanges: LineRange[],
+    viewport: any = animationViewport
+  ) {
     const visibleLines = this.getVisibleLines(code, lineRanges);
 
     // Use scrolling renderer for consistent 15-line window display
-    const scrollingResult = this.scrollingRenderer.renderWithScrolling(
+    const scrollingRenderer = this.getScrollingRenderer(viewport);
+    const scrollingResult = scrollingRenderer.renderWithScrolling(
       visibleLines,
       visibleLines.map((line) => line.lineNumber)
     );
 
-    const fontSettings = animationViewport.getFontSettings();
-    const { width, height } = animationViewport.calculateDimensions();
+    const fontSettings = viewport.getFontSettings();
+    const { width, height } = viewport.calculateDimensions();
 
     return {
       type: "static-frame",
@@ -462,16 +523,20 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     code: string,
     language: string,
     slides: Slide[],
-    globalSpeed: number = 1.0
+    globalSpeed: number = 1.0,
+    viewport: any = animationViewport
   ) {
+    // Reset the scrolling renderer to ensure a clean state for each new animation
+    this.getScrollingRenderer(viewport).reset();
+
     // Return animation configuration with slide transitions
     const animationSteps = this.calculateAnimationSteps(
       code,
       slides,
       globalSpeed
     );
-    const fontSettings = animationViewport.getFontSettings();
-    const { width, height } = animationViewport.calculateDimensions();
+    const fontSettings = viewport.getFontSettings();
+    const { width, height } = viewport.calculateDimensions();
 
     return {
       type: "animated-scene",
@@ -701,15 +766,17 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     fromSlide: Slide | null,
     toSlide: Slide,
     progress: number,
-    globalSpeed: number = 1.0
+    globalSpeed: number = 1.0,
+    viewport: any = animationViewport
   ): any {
     const fromLines = fromSlide ? this.getSlideLines(fromSlide, code) : [];
     const toLines = this.getSlideLines(toSlide, code);
     const diff = this.getLineDiff(fromLines, toLines);
 
     // Use scrolling renderer to get properly windowed lines
+    const scrollingRenderer = this.getScrollingRenderer(viewport);
     const allCodeLines = this.getCodeLines(code);
-    const scrollingResult = this.scrollingRenderer.updateWindowForSlide(
+    const scrollingResult = scrollingRenderer.updateWindowForSlide(
       toSlide,
       allCodeLines
     );
@@ -717,8 +784,8 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     // Apply global speed to animation timing
     const adjustedProgress = Math.min(1, progress * globalSpeed);
 
-    const fontSettings = animationViewport.getFontSettings();
-    const { width, height } = animationViewport.calculateDimensions();
+    const fontSettings = viewport.getFontSettings();
+    const { width, height } = viewport.calculateDimensions();
 
     // Calculate rendered lines with scrolling window applied
     const renderedLines = this.calculateRenderedLinesWithScrolling(
@@ -1031,22 +1098,19 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
   }
 
   /**
-   * Get the scrolling renderer instance for external use
-   */
-  getScrollingRenderer(): ScrollingRenderer {
-    return this.scrollingRenderer;
-  }
-
-  /**
    * Get windowed line ranges for a slide (respects 15-line scrolling window)
    * This is used for static preview to match animation behavior
    */
-  getWindowedLineRanges(slide: Slide, code: string): LineRange[] {
-    const allCodeLines = this.getCodeLines(code);
+  getWindowedLineRanges(
+    slide: Slide,
+    code: string,
+    viewport: any = animationViewport
+  ): LineRange[] {
     const slideLines = this.getSlideLines(slide, code);
 
     // Use the scrolling renderer to get the windowed lines
-    const scrollingResult = this.scrollingRenderer.renderWithScrolling(
+    const scrollingRenderer = this.getScrollingRenderer(viewport);
+    const scrollingResult = scrollingRenderer.renderWithScrolling(
       slideLines,
       slideLines.map((line) => line.lineNumber)
     );
@@ -1056,6 +1120,31 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
       start: line.actualLineNumber,
       end: line.actualLineNumber,
     }));
+  }
+
+  /**
+   * Get visible lines for a slide with correct display numbers, respecting the scrolling window.
+   * This is used for rendering static previews.
+   */
+  getVisibleLinesForSlide(
+    slide: Slide,
+    code: string,
+    viewport: any = animationViewport
+  ): {
+    displayLineNumber: number;
+    actualLineNumber: number;
+    content: string;
+  }[] {
+    const slideLines = this.getSlideLines(slide, code);
+
+    // Use the scrolling renderer to get the windowed and correctly numbered lines
+    const scrollingRenderer = this.getScrollingRenderer(viewport);
+    const scrollingResult = scrollingRenderer.renderWithScrolling(
+      slideLines,
+      slideLines.map((line) => line.lineNumber)
+    );
+
+    return scrollingResult.visibleLines;
   }
 
   /**
@@ -1076,8 +1165,9 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
     const diff = this.getLineDiff(fromLines, toLines);
 
     // Use scrolling renderer to get properly windowed lines
+    const scrollingRenderer = this.getScrollingRenderer(viewport);
     const allCodeLines = this.getCodeLines(code);
-    const scrollingResult = this.scrollingRenderer.updateWindowForSlide(
+    const scrollingResult = scrollingRenderer.updateWindowForSlide(
       toSlide,
       allCodeLines
     );
