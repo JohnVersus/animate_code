@@ -18,6 +18,7 @@ import {
   portraitPreviewViewport,
 } from "@/services/viewportConfig";
 import { Button } from "@/components/ui/button";
+import { RectangleHorizontal, RectangleVertical } from "lucide-react";
 
 // Dynamically import components to avoid SSR issues
 const CodeEditor = dynamic(
@@ -412,6 +413,11 @@ function createCalculator() {
                       }
                     >
                       {previewMode === "landscape" ? "Portrait" : "Landscape"}
+                      {previewMode === "landscape" ? (
+                        <RectangleVertical />
+                      ) : (
+                        <RectangleHorizontal />
+                      )}
                     </Button>
                   </div>
                   <div className="flex items-center space-x-2">

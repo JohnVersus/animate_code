@@ -125,7 +125,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
             fromSlide,
             toSlide,
             animationProgress,
-            globalSpeed
+            globalSpeed,
+            viewport
           );
           canvasRenderer.renderAnimationFrame(
             canvasRef.current,
@@ -139,7 +140,8 @@ export const AnimationPreview: React.FC<AnimationPreviewProps> = ({
         if (currentSlideData) {
           const visibleLines = animationEngine.getVisibleLinesForSlide(
             currentSlideData,
-            code
+            code,
+            viewport
           );
           canvasRenderer.renderCodeToCanvas(
             canvasRef.current,

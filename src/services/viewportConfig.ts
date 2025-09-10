@@ -461,7 +461,7 @@ export const portraitPreviewViewport = new AnimationViewport({
   fontSize: 7,
   lineHeight: 13,
   padding: 15,
-  maxVisibleLines: 20,
+  maxVisibleLines: 20, // Increased from 15 to 20 for portrait mode
   verticalAlignment: "top",
   lineNumberWidth: 10,
 });
