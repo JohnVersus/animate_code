@@ -101,14 +101,14 @@ console.log(fibonacci(10));`);
             Click the button below to test the video export functionality. This
             will create a short animation of the fibonacci function above.
           </p>
-
-          <ExportButton
+          {/*  requries update. but not used */}
+          {/* <ExportButton
             code={testCode}
             language="javascript"
             slides={testSlides}
             projectName="fibonacci-test"
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
-          />
+          /> */}
         </div>
 
         <div className="mt-6 text-center">
