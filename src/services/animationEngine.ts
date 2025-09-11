@@ -1231,13 +1231,11 @@ export class MotionCanvasAnimationEngine implements AnimationEngineService {
 
       case "slide":
         // Slide animation with fade
-        return state === "entering"
-          ? Math.min(1, codeProgress * 1.5)
-          : Math.max(0, 1 - codeProgress * 1.5);
+        return state === "entering" ? 1 : Math.max(0, 1 - codeProgress * 1.5);
 
       case "typewriter":
-        // Typewriter effect - smooth opacity for sequential character animation
-        return state === "entering" ? codeProgress : 1 - codeProgress;
+        // Typewriter effect - no smooth opacity for sequential character animation
+        return state === "entering" ? 1 : 1 - codeProgress;
 
       case "highlight":
         // Highlight style with quick transitions
