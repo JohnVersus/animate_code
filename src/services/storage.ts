@@ -1,6 +1,5 @@
 import Dexie, { Table } from "dexie";
 import { Project, ErrorType, AppError } from "../types";
-import { createDefaultProject, isFirstTimeUser } from "./defaultProject";
 
 // Database schema for IndexedDB
 export class CodeAnimatorDB extends Dexie {
@@ -136,7 +135,6 @@ class StorageServiceImpl implements StorageService {
 
   /**
    * List all projects from IndexedDB, sorted by updatedAt descending
-   * Automatically creates default project for first-time users
    */
   async listProjects(): Promise<Project[]> {
     try {
@@ -145,16 +143,6 @@ class StorageServiceImpl implements StorageService {
         .orderBy("updatedAt")
         .reverse()
         .toArray();
-
-      // If no projects exist, create the default example project
-      if (isFirstTimeUser(projects)) {
-        const defaultProject = createDefaultProject();
-        const projectId = await this.saveProject(defaultProject);
-
-        // Return the newly created default project
-        const newProject = await this.loadProject(projectId);
-        return [newProject];
-      }
 
       return projects;
     } catch (error) {
