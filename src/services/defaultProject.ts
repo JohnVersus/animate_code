@@ -800,7 +800,7 @@ const aiSdkSlides: Slide[] = [
 
 const exampleProjects: ExampleProject[] = [
   {
-    name: "Hello World Example",
+    name: "Hello World",
     code: `// Welcome to Code Animator!
 function greetUser(name) {
   const greeting = "Hello, " + name + "!";
