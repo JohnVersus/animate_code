@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Project, Slide } from "@/types";
 import { storageService } from "@/services/storage";
+import { getExampleProjects, ExampleProject } from "@/services/defaultProject";
 import { localStorageService } from "@/services/localStorageService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,8 @@ import {
 import { clearDatabase } from "@/utils/dbUtils";
 import GitHubButton from "react-github-btn";
 import { TwitterFollowButton } from "react-twitter-embed";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ExampleProjectList } from "./ExampleProjectList";
 
 interface CodeManagerProps {
   onCodeSelect: (code: string, language: string, slides: Slide[]) => void;
@@ -56,6 +59,8 @@ export function CodeManager({
   const [searchQuery, setSearchQuery] = useState("");
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [exampleProjects, setExampleProjects] = useState<ExampleProject[]>([]);
+  const [activeTab, setActiveTab] = useState("projects");
 
   // Use ref to access current projects without causing re-renders
   const projectsRef = useRef<Project[]>([]);
@@ -68,6 +73,7 @@ export function CodeManager({
   // Load projects on component mount
   useEffect(() => {
     loadProjects();
+    setExampleProjects(getExampleProjects());
   }, []);
 
   // Auto-save current project when code or slides change
@@ -166,6 +172,9 @@ export function CodeManager({
       setStorageError(null);
       const projectList = await storageService.listProjects();
       setProjects(projectList);
+      if (projectList.length === 0) {
+        setActiveTab("examples");
+      }
     } catch (error) {
       console.error("Failed to load projects:", error);
       setStorageError(
@@ -174,6 +183,19 @@ export function CodeManager({
       setProjects([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleExampleProjectSelect = async (example: ExampleProject) => {
+    try {
+      const projectId = await storageService.saveProject(example);
+      const newProject = await storageService.loadProject(projectId);
+
+      await loadProjects();
+      handleProjectSelect(newProject);
+      setActiveTab("projects");
+    } catch (error) {
+      console.error("Failed to create project from example:", error);
     }
   };
 
@@ -463,115 +485,120 @@ function example() {
         </div>
       </div>
 
-      {/* Projects List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {filteredProjects.length === 0 ? (
-          projects.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Code className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-sm">No projects yet</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Create your first project to get started
-              </p>
-            </div>
-          ) : (
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="flex-1 flex flex-col"
+      >
+        <TabsList className="mx-4 mt-4">
+          <TabsTrigger value="projects">Projects</TabsTrigger>
+          <TabsTrigger value="examples">Examples</TabsTrigger>
+        </TabsList>
+        <TabsContent
+          value="projects"
+          className="flex-1 overflow-y-auto p-4 space-y-3"
+        >
+          {filteredProjects.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p className="text-sm">No projects found</p>
               <p className="text-xs text-gray-400 mt-1">
-                Try adjusting your search terms
+                Try adjusting your search terms or create a new project.
               </p>
             </div>
-          )
-        ) : (
-          filteredProjects.map((project) => (
-            <Card
-              key={project.id}
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                selectedProject === project.id
-                  ? "ring-2 ring-blue-500 bg-blue-50"
-                  : "hover:bg-gray-50"
-              }`}
-              onClick={() => handleProjectSelect(project)}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  {editingProjectId === project.id ? (
-                    <div className="flex-1 mr-2">
-                      <Input
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        className="text-sm h-7"
-                        onKeyDown={(e) => {
-                          e.stopPropagation();
-                          if (e.key === "Enter") {
-                            saveRename(project.id);
-                          } else if (e.key === "Escape") {
-                            cancelRename();
-                          }
-                        }}
-                        onBlur={() => saveRename(project.id)}
-                        autoFocus
-                      />
-                    </div>
-                  ) : (
-                    <CardTitle className="text-sm font-medium text-gray-900 truncate flex-1 max-w-52">
-                      {project.name}
-                    </CardTitle>
-                  )}
+          ) : (
+            filteredProjects.map((project) => (
+              <Card
+                key={project.id}
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  selectedProject === project.id
+                    ? "ring-2 ring-blue-500 bg-blue-50"
+                    : "hover:bg-gray-50"
+                }`}
+                onClick={() => handleProjectSelect(project)}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    {editingProjectId === project.id ? (
+                      <div className="flex-1 mr-2">
+                        <Input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          className="text-sm h-7"
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+                            if (e.key === "Enter") {
+                              saveRename(project.id);
+                            } else if (e.key === "Escape") {
+                              cancelRename();
+                            }
+                          }}
+                          onBlur={() => saveRename(project.id)}
+                          autoFocus
+                        />
+                      </div>
+                    ) : (
+                      <CardTitle className="text-sm font-medium text-gray-900 truncate flex-1 max-w-52">
+                        {project.name}
+                      </CardTitle>
+                    )}
 
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-blue-600"
-                      onClick={(e) => duplicateProject(project, e)}
-                      title="Duplicate project"
-                    >
-                      <Copy className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-green-600"
-                      onClick={(e) => startRenaming(project, e)}
-                      title="Rename project"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
-                      onClick={(e) => deleteProject(project.id, e)}
-                      title="Delete project"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-gray-400 hover:text-blue-600"
+                        onClick={(e) => duplicateProject(project, e)}
+                        title="Duplicate project"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-gray-400 hover:text-green-600"
+                        onClick={(e) => startRenaming(project, e)}
+                        title="Rename project"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
+                        onClick={(e) => deleteProject(project.id, e)}
+                        title="Delete project"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2">
-                  <div className="flex items-center text-xs text-gray-500">
-                    <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
-                      {project.language}
-                    </span>
-                    <span className="ml-2">
-                      {project.slides.length} slide
-                      {project.slides.length !== 1 ? "s" : ""}
-                    </span>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    <div className="flex items-center text-xs text-gray-500">
+                      <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
+                        {project.language}
+                      </span>
+                      <span className="ml-2">
+                        {project.slides.length} slide
+                        {project.slides.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-400">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      <span>Updated {formatDate(project.updatedAt)}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center text-xs text-gray-400">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    <span>Updated {formatDate(project.updatedAt)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+        <TabsContent value="examples" className="flex-1 overflow-y-auto p-4">
+          <ExampleProjectList onExampleSelect={handleExampleProjectSelect} />
+        </TabsContent>
+      </Tabs>
       <div className="p-2 flex flex-col gap-2 items-center">
         {/* <div className="flex flow-col gap-2">
           <GitHubButton
