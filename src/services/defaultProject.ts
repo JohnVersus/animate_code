@@ -84,7 +84,7 @@ const forLoopSlides: Slide[] = [
   },
   {
     id: "slide-3",
-    name: "Loop Condition",
+    name: "Slide Pause",
     lineRanges: [
       {
         start: 1,
@@ -95,7 +95,7 @@ const forLoopSlides: Slide[] = [
         end: 5,
       },
     ],
-    duration: 1000,
+    duration: 500,
     animationStyle: "typewriter",
     order: 2,
   },
